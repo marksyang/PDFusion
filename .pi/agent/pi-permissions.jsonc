@@ -1,0 +1,10 @@
+{
+  "tools": {
+    "edit": "allow",
+    "write": "allow"
+  },
+  "bash": {
+      "rm -rf *": "deny",
+      "sudo *": "ask"
+  }
+}

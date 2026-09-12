@@ -1,0 +1,8 @@
+node_modules/
+out/
+dist/
+core/target/
+core/*.node
+!tests/fixtures/**.node
+*.log
+.DS_Store

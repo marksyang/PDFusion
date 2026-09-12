@@ -1,0 +1,17 @@
+[package]
+name = "pdfusion-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "pdfusion_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+napi = { version = "3", default-features = false, features = ["napi8", "async"] }
+napi-derive = { version = "3", default-features = false, features = ["type-def"] }
+pdfium-render = { version = "0.9.4", features = ["thread_safe", "pdfium_latest"] }
+
+[build-dependencies]
+napi-build = "2"

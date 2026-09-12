@@ -1,0 +1,56 @@
+appId: com.markyang.pdfusion
+productName: PDFusion
+copyright: Copyright © 2026 Mark Yang
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**/*
+  - core/index.js
+  - core/index.d.ts
+  - 'core/*.node'
+  - LICENSE
+  - package.json
+  # All runtime JS deps (pdf-lib, fontkit, zustand) are bundled by electron-vite;
+  # main/preload only require electron + node builtins.
+  - '!node_modules/**/*'
+
+# Native modules must live outside (or be unpacked from) the asar archive.
+asarUnpack:
+  - 'core/**/*.node'
+
+# PDFium dynamic libraries ship OUTSIDE the asar (loaded at runtime by path).
+extraResources:
+  - from: resources/pdfium-mac
+    to: pdfium-mac
+    filter:
+      - '**/*'
+  - from: resources/pdfium-windows
+    to: pdfium-windows
+    filter:
+      - '**/*'
+
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  identity: null # no code signing (open-source / personal use)
+
+dmg:
+  sign: false
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-setup.${ext}
