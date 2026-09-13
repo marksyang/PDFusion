@@ -15,12 +15,19 @@ import { viewPointToPdf } from './Rotation'
  * start point in PDF space.
  */
 
-// Local (view) → PDF 2×2 rotation matrix per /Rotate value.
+// Local (view) → PDF 2×2 text matrix per /Rotate value.
+// Derived from the empirical pdfium view mappings (top-left view origin):
+//   R=0:   (x_v, y_v) = (x_p, H - y_p)
+//   R=90:  (x_v, y_v) = (y_p, x_p)
+//   R=180: (x_v, y_v) = (W - x_p, y_p)
+//   R=270: (x_v, y_v) = (H - y_p, W - x_p)
+// Matrix maps text-space +x (baseline direction) to the view-right direction
+// in PDF space, and text-space +y (glyph up) to the view-up direction.
 const MAT: Record<number, [number, number, number, number]> = {
   0: [1, 0, 0, 1],
-  90: [0, 1, 1, 0],
+  90: [0, 1, -1, 0],
   180: [-1, 0, 0, -1],
-  270: [0, -1, -1, 0]
+  270: [0, -1, 1, 0]
 }
 
 interface PDFPageLow {
