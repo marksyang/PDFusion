@@ -170,6 +170,43 @@ app.whenReady().then(() => {
             console.log('[pdfusion] dev edit-save:', await mainWindow?.webContents.executeJavaScript(`document.getElementById('hint').textContent`))
           }, 2500)
         }
+        if (process.env['PDFUSION_DEV_MEASURE']) {
+          setTimeout(async () => {
+            const r = await mainWindow?.webContents.executeJavaScript(`(async () => {
+              const out = {};
+              const $ = (s) => document.querySelector(s);
+              const sleep = (ms) => new Promise((r2) => setTimeout(r2, ms));
+              const rectOf = (el) => { const r3 = el.getBoundingClientRect(); return [Math.round(r3.x), Math.round(r3.y), Math.round(r3.width), Math.round(r3.height)]; };
+              const cv0 = () => document.querySelector('.page-wrap .annot-canvas');
+              out.alignZoom1 = { page: rectOf(document.querySelector('.page-wrap .page-canvas')), annot: rectOf(cv0()) };
+              const draw = (x0, y0, x1, y1) => {
+                const cv = cv0();
+                const r4 = cv.getBoundingClientRect();
+                const s2 = 96/72 * window.__debug.store.getState().zoom;
+                const mk = (t, x, y) => new PointerEvent(t, { clientX: r4.left + x*s2, clientY: r4.top + y*s2, pointerId: 1, bubbles: true });
+                cv.dispatchEvent(mk('pointerdown', x0, y0));
+                cv.dispatchEvent(mk('pointermove', x1, y1));
+                cv.dispatchEvent(mk('pointerup', x1, y1));
+              };
+              $('[data-tool=highlight]').click();
+              draw(270, 122, 340, 142);
+              await sleep(150);
+              out.zoom1 = window.__debug.annStore.getState().annotations.map((a) => a.rect);
+              $('#btn-zoom-in').click();
+              await sleep(1500);
+              out.alignZoom2 = { page: rectOf(document.querySelector('.page-wrap .page-canvas')), annot: rectOf(cv0()), zoomLabel: $('#zoom-label').textContent };
+              draw(100, 300, 200, 330);
+              await sleep(150);
+              out.zoom2 = window.__debug.annStore.getState().annotations.map((a) => a.rect);
+              $('[data-tool=select]').click();
+              draw(305, 132, 306, 133);
+              await sleep(150);
+              out.selectedId = window.__debug.annStore.getState().selectedId;
+              return JSON.stringify(out);
+            })()`)
+            console.log('[pdfusion] dev measure:', r)
+          }, 2500)
+        }
         if (process.env['PDFUSION_DEV_FIX']) {
           setTimeout(async () => {
             const r = await mainWindow?.webContents.executeJavaScript(`new Promise((resolve) => {

@@ -193,6 +193,11 @@ body {
 .annot-canvas {
   position: absolute;
   inset: 0;
+  /* Canvas is a replaced element: inset:0 alone does NOT stretch it — the
+     width/height attributes (device px) would win and offset all drawing by
+     devicePixelRatio. Pin the CSS box to the page wrapper explicitly. */
+  width: 100%;
+  height: 100%;
   cursor: crosshair;
 }
 

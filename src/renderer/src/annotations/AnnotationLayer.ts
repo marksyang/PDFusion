@@ -241,6 +241,9 @@ export class AnnotationLayer {
         canvas.width = w
         canvas.height = h
       }
+      // Keep the CSS box pinned to the wrapper (replaced-element sizing).
+      canvas.style.width = `${cssW}px`
+      canvas.style.height = `${cssH}px`
       const ctx = canvas.getContext('2d')!
       ctx.setTransform(this.dpr * s, 0, 0, this.dpr * s, 0, 0)
       ctx.clearRect(0, 0, cssW / s, cssH / s)

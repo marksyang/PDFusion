@@ -62,16 +62,22 @@ export async function commitTextEdit(
     const size = item.fontSize > 0 ? item.fontSize : item.height / 1.2
     const lineHeight = size * 1.25
     const lines = newText.split('\n')
-    lines.forEach((line, i) => {
-      const top = item.y + 1 + i * lineHeight
-      // Approximate baseline: ascent ≈ 0.8 of line height for typical fonts.
-      pdfPage.drawText(line, {
-        x: item.x + 1,
-        y: H - top - size * 0.8,
-        size,
-        font,
-        color: rgb(0, 0, 0)
+    try {
+      lines.forEach((line, i) => {
+        const top = item.y + 1 + i * lineHeight
+        // Approximate baseline: ascent ≈ 0.8 of line height for typical fonts.
+        pdfPage.drawText(line, {
+          x: item.x + 1,
+          y: H - top - size * 0.8,
+          size,
+          font,
+          color: rgb(0, 0, 0)
+        })
       })
-    })
+    } catch (err) {
+      throw new Error(
+        `無法以該字型繪製新文字（可能含有不支援的字元，例如原文為西文文件卻輸入中日韓文字）：${String(err)}`
+      )
+    }
   })
 }

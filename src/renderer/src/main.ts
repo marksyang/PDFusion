@@ -51,7 +51,7 @@ const thumbs = new PageThumbnails(
 )
 
 // Dev/debug handle (used by E2E dev triggers and the console).
-;(window as unknown as Record<string, unknown>).__debug = { annStore, controller }
+;(window as unknown as Record<string, unknown>).__debug = { annStore, controller, store: useStore }
 
 let hits: SearchHit[] = []
 let hitIndex = -1
