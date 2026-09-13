@@ -48,6 +48,14 @@ body {
   background: #565963;
 }
 
+/* 選定中的工具按鈕反白（必須勝過上面的 :hover，否則滑鼠停在按鈕上時會被蓋掉） */
+#toolbar button[data-tool].active,
+#toolbar button[data-tool].active:hover {
+  background: #7a8cff;
+  border-color: #9aa5ff;
+  color: #ffffff;
+}
+
 #doc-title {
   font-size: 13px;
   max-width: 220px;
@@ -182,12 +190,6 @@ body {
 .hit-box.active {
   border-color: #ff3b30;
   background: rgba(255, 59, 48, 0.25);
-}
-
-.op-group button[data-tool].active {
-  background: #7a8cff;
-  border-color: #9aa5ff;
-  color: #ffffff;
 }
 
 .annot-canvas {

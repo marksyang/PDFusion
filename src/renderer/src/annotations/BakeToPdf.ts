@@ -2,6 +2,7 @@ import { PDFDocument, PDFFont, StandardFonts, rgb } from 'pdf-lib'
 import type { PageManager } from '../pageops/PageManager'
 import type { Annotation, Rect } from './AnnotationModel'
 import { viewPointToPdf, viewRectToPdf } from '../textedit/Rotation'
+import { drawRotatedText } from '../textedit/RotatedText'
 
 /**
  * BakeToPdf — burns in-app annotations into the page content of the working
@@ -13,6 +14,7 @@ const HIGHLIGHT = rgb(1, 0.878, 0)
 const SHAPE = rgb(0.102, 0.451, 0.91)
 const INK = rgb(0.851, 0.188, 0.145)
 const TEXT = rgb(0.07, 0.07, 0.07)
+const TEXT_RGB: [number, number, number] = [0.07, 0.07, 0.07]
 
 /** Rough wrap for Helvetica-like metrics (avg char ≈ 0.52em). */
 function wrapText(text: string, width: number, fontSize: number): string[] {
@@ -123,8 +125,27 @@ export async function bakeAnnotations(
         }
 
         case 'freetext': {
-          const pr: Rect = viewRectToPdf(rot, W, H, ann.rect)
-          drawBakedText(page, pr, ann.text, ann.fontSize, font)
+          if (rot === 0) {
+            const pr: Rect = viewRectToPdf(rot, W, H, ann.rect)
+            drawBakedText(page, pr, ann.text, ann.fontSize, font)
+          } else {
+            // Rotated page: draw via raw content stream so the text reads in
+            // the view orientation (pdf-lib drawText cannot rotate).
+            const lines = wrapText(ann.text, ann.rect.w, ann.fontSize)
+            drawRotatedText(
+              doc,
+              page,
+              font,
+              rot,
+              W,
+              H,
+              ann.rect.x + 2,
+              ann.rect.y + 2,
+              lines,
+              ann.fontSize,
+              TEXT_RGB
+            )
+          }
           break
         }
       }

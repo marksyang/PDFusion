@@ -264,9 +264,11 @@ app.whenReady().then(() => {
                 const target = items.find((i) => i.text.includes('LINE TWO'));
                 if (!target) return JSON.stringify({ err: 'no LINE TWO', items });
                 const view = await window.pdfusion.core.pageSize(docId, 0);
-                dbg.annStore.getState().add({ id: 'rot-ann', page: 0, type: 'highlight', rect: { x: target.x, y: target.y, w: target.width, h: target.height } });
-                const bytes = await dbg.bakeToBytes(docId, [{ id: 'rot-ann', page: 0, type: 'highlight', rect: { x: target.x, y: target.y, w: target.width, h: target.height } }]);
-                return JSON.stringify({ target, view, bytes, byteCount: bytes.length });
+                const hl = { id: 'rot-ann', page: 0, type: 'highlight', rect: { x: target.x, y: target.y, w: target.width, h: target.height } };
+                const ft = { id: 'rot-ft', page: 0, type: 'freetext', rect: { x: 100, y: 450, w: 320, h: 60 }, text: 'ROTATED-TEXT-OK', fontSize: 20 };
+                dbg.annStore.getState().add(hl);
+                const bytes = await dbg.bakeToBytes(docId, [hl, ft]);
+                return JSON.stringify({ target, view, ftRect: ft.rect, bytes, byteCount: bytes.length });
               } catch (e) { return JSON.stringify({ err: String(e) }); }
             })()`)
             console.log('[pdfusion] dev rotb (head):', r.slice(0, 400))

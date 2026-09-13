@@ -2,6 +2,7 @@ import { PDFDocument, PDFFont, StandardFonts, rgb } from 'pdf-lib'
 import type { PageManager } from '../pageops/PageManager'
 import type { TextItem } from '../global'
 import { viewRectToPdf } from './Rotation'
+import { drawRotatedText } from './RotatedText'
 
 /**
  * CommitText — replaces a text segment in the working document:
@@ -75,20 +76,25 @@ export async function commitTextEdit(
 
     // 2. Draw the replacement text (multi-line support via \n).
     const size = item.fontSize > 0 ? item.fontSize : item.height / 1.2
-    const lineHeight = size * 1.25
-    const pdfTop = H - pr.y - pr.h // PDF top-left y of the converted rect
     const lines = newText.split('\n')
     try {
-      lines.forEach((line, i) => {
-        const top = pdfTop + 2 + i * lineHeight
-        pdfPage.drawText(line, {
-          x: pr.x + 2,
-          y: H - top - size, // baseline
-          size,
-          font,
-          color: rgb(0, 0, 0)
+      if (rot === 0) {
+        const lineHeight = size * 1.25
+        const pdfTop = H - pr.y - pr.h // PDF top-left y of the converted rect
+        lines.forEach((line, i) => {
+          const top = pdfTop + 2 + i * lineHeight
+          pdfPage.drawText(line, {
+            x: pr.x + 2,
+            y: H - top - size, // baseline
+            size,
+            font,
+            color: rgb(0, 0, 0)
+          })
         })
-      })
+      } else {
+        // Rotated page: raw content stream so text reads in view orientation.
+        drawRotatedText(doc, pdfPage, font, rot, W, H, item.x + 1, item.y + 1, lines, size, [0, 0, 0])
+      }
     } catch (err) {
       throw new Error(
         `無法以該字型繪製新文字（可能含有不支援的字元，例如原文為西文文件卻輸入中日韓文字）：${String(err)}`

@@ -42,4 +42,8 @@ PDF 的文字不是「可選取的資料」，而是一連串繪圖指令（內�
 
 - 渲染、文字擷取、搜尋、註解繪製皆使用「視圖空間」（套用 /Rotate 後、左上原點），與螢幕顯示一致。
 - 烘焙（bake）與文字編輯會將視圖座標換算回 pdf-lib 的未旋轉 user space，因此註解/文字會出現在正確位置（E2E 已驗證 /Rotate 90）。
-- 限制：新輸入的文字仍沿著頁面「本 axes」方向繪製；在旋轉頁上，新文字方向與頁面原生內容一致（可能與螢幕直觀方向不同），無法旋轉文字基線。
+- 新輸入的文字（free text / 改字）在旋轉頁上會以**視圖方向**繪製（水平可讀、與螢幕顯示一致）：
+  內部用 raw content stream + 旋轉矩陣（`textedit/RotatedText.ts`），因為 pdf-lib 的高層 drawText 無法旋轉文字。
+- 已知限制：
+  - 旋轉頁上的新文字使用標準字型（或原文嵌入字型的 raw 引用），無法自動換行到下一「列」以外的版面流程（同非旋轉頁的 overlay 編輯限制）。
+  - PDFium 不支援 /Contents 陣列內的 inline stream，故低層路徑必須用 `context.contentStream()` + `context.register()` 建立 indirect stream。
