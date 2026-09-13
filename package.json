@@ -1,6 +1,6 @@
 {
   "name": "pdfusion",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Cross-platform PDF editor for macOS and Windows (pdfium via Rust core + pdf-lib)",
   "main": "./out/main/index.js",
   "author": "Mark Yang",
