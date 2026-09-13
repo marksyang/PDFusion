@@ -33,10 +33,6 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: swatinem/actions-rust-cache@v2
-        with:
-          workspaces: core -> target
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
