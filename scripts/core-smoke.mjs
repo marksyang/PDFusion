@@ -58,4 +58,23 @@ const thumb = core.renderThumbnail(id, 1, 200)
 assert.ok(thumb.width <= 200 || thumb.height <= 200, 'thumbnail should be scaled down')
 
 core.close(id)
-console.log('core smoke test OK: load/pageCount/pageSize/text/search/fonts/render/thumbnail')
+
+// Rotated page (fixture: 612x792 MediaBox, /Rotate 90) — text must be in VIEW space
+{
+  const fs = require('node:fs')
+  const rid = core.loadPdf(fs.readFileSync(join(root, 'fixtures', 'rotated.pdf')))
+  assert.equal(core.pageRotation(rid, 0), 90, 'rotation should be 90')
+  const rsz = core.pageSize(rid, 0)
+  assert.ok(rsz.width > rsz.height, 'rotated pageSize should be landscape')
+  const ritems = core.getTextItems(rid, 0)
+  assert.equal(ritems.length, 2, 'rotated page should have 2 text items')
+  for (const it of ritems) {
+    assert.ok(
+      it.x >= -1 && it.y >= -1 && it.x + it.width <= rsz.width + 1 && it.y + it.height <= rsz.height + 1,
+      `text item out of view space: ${JSON.stringify(it)} view=${rsz.width}x${rsz.height}`
+    )
+  }
+  core.close(rid)
+}
+
+console.log('core smoke test OK: load/pageCount/pageSize/rotation/text/search/fonts/render/thumbnail')

@@ -24,6 +24,22 @@ pub fn page_size(store: &DocumentStore, id: u32, index: u32) -> Result<PageSize>
     })
 }
 
+/// The page's /Rotate value: 0, 90, 180 or 270 (clockwise degrees).
+pub fn page_rotation(store: &DocumentStore, id: u32, index: u32) -> Result<u32> {
+    store.with_doc(id, |doc| {
+        let page = get_page(doc, index)?;
+        let rot = page.rotation().map_err(|e| {
+            napi::Error::from_reason(format!("failed to read rotation for page {index}: {e}"))
+        })?;
+        Ok(match rot {
+            PdfPageRenderRotation::None => 0,
+            PdfPageRenderRotation::Degrees90 => 90,
+            PdfPageRenderRotation::Degrees180 => 180,
+            PdfPageRenderRotation::Degrees270 => 270,
+        })
+    })
+}
+
 pub fn render(
     store: &DocumentStore,
     id: u32,

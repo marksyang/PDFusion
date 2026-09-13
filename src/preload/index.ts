@@ -52,6 +52,9 @@ const api = {
     renderThumbnail(id: number, index: number, size: number): Promise<RenderedPage> {
       return ipcRenderer.invoke('core:render-thumbnail', id, index, size)
     },
+    pageRotation(id: number, index: number): Promise<number> {
+      return ipcRenderer.invoke('core:page-rotation', id, index)
+    },
     getTextItems(id: number, index: number): Promise<TextItem[]> {
       return ipcRenderer.invoke('core:get-text-items', id, index)
     },

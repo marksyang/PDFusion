@@ -31,6 +31,7 @@ export interface PdfCoreApi {
   close(id: number): void
   pageCount(id: number): number
   pageSize(id: number, index: number): { width: number; height: number }
+  pageRotation(id: number, index: number): number
   renderPage(
     id: number,
     index: number,
@@ -125,6 +126,8 @@ export function registerCoreIpc(): void {
   ipcMain.handle('core:render-thumbnail', (_e, id: number, index: number, size: number) =>
     core().renderThumbnail(id, index, size)
   )
+  ipcMain.handle('core:page-rotation', (_e, id: number, index: number) =>
+    core().pageRotation(id, index))
   ipcMain.handle('core:get-text-items', (_e, id: number, index: number) =>
     core().getTextItems(id, index)
   )

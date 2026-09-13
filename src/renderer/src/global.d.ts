@@ -42,6 +42,7 @@ declare global {
         pageSize(id: number, index: number): Promise<{ width: number; height: number }>
         renderPage(id: number, index: number, scale: number): Promise<RenderedPage>
         renderThumbnail(id: number, index: number, size: number): Promise<RenderedPage>
+        pageRotation(id: number, index: number): Promise<number>
         getTextItems(id: number, index: number): Promise<TextItem[]>
         search(id: number, query: string): Promise<SearchHit[]>
         listFonts(id: number): Promise<Array<{ name: string; isEmbedded: boolean }>>

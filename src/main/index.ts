@@ -250,6 +250,41 @@ app.whenReady().then(() => {
             console.log('[pdfusion] dev fix:', r)
           }, 2500)
         }
+        if (process.env['PDFUSION_DEV_ROTB']) {
+          // E2E: highlight 'LINE TWO' (view coords), bake with rotation, save bytes.
+          setTimeout(async () => {
+            const r = await mainWindow?.webContents.executeJavaScript(`(async () => {
+              try {
+                const dbg = window.__debug;
+                if (!dbg) return JSON.stringify({ err: 'no __debug' });
+                const st = dbg.store.getState();
+                const docId = st.docId;
+                if (docId === null) return JSON.stringify({ err: 'no doc' });
+                const items = await window.pdfusion.core.getTextItems(docId, 0);
+                const target = items.find((i) => i.text.includes('LINE TWO'));
+                if (!target) return JSON.stringify({ err: 'no LINE TWO', items });
+                const view = await window.pdfusion.core.pageSize(docId, 0);
+                dbg.annStore.getState().add({ id: 'rot-ann', page: 0, type: 'highlight', rect: { x: target.x, y: target.y, w: target.width, h: target.height } });
+                const bytes = await dbg.bakeToBytes(docId, [{ id: 'rot-ann', page: 0, type: 'highlight', rect: { x: target.x, y: target.y, w: target.width, h: target.height } }]);
+                return JSON.stringify({ target, view, bytes, byteCount: bytes.length });
+              } catch (e) { return JSON.stringify({ err: String(e) }); }
+            })()`)
+            console.log('[pdfusion] dev rotb (head):', r.slice(0, 400))
+            try {
+              const parsed = JSON.parse(r)
+              if (parsed.bytes) {
+                const { writeFileSync, mkdirSync } = await import('fs')
+                const dir = '/tmp/pdfusion-fix'
+                mkdirSync(dir, { recursive: true })
+                const file = join(dir, 'rotbaked.pdf')
+                writeFileSync(file, Buffer.from(parsed.bytes))
+                console.log('[pdfusion] dev rotb saved:', file)
+              }
+            } catch (err) {
+              console.error('[pdfusion] dev rotb write failed:', err)
+            }
+          }, 3000)
+        }
         setTimeout(async () => {
           try {
             const image = await mainWindow?.webContents.capturePage()

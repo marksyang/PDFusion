@@ -84,11 +84,19 @@ impl PdfCore {
         render::page_count(&guard, id)
     }
 
-    /// Page size in PDF points (72 dpi).
+    /// Page size in PDF points (72 dpi). For rotated pages this is the
+    /// ROTATED (effective) size, matching the rendered bitmap.
     #[napi]
     pub fn page_size(&self, id: u32, index: u32) -> Result<PageSize> {
         let guard = self.store.lock().unwrap();
         render::page_size(&guard, id, index)
+    }
+
+    /// The page's /Rotate value: 0, 90, 180 or 270 (clockwise degrees).
+    #[napi]
+    pub fn page_rotation(&self, id: u32, index: u32) -> Result<u32> {
+        let guard = self.store.lock().unwrap();
+        render::page_rotation(&guard, id, index)
     }
 
     /// Render a page at the given scale (1.0 == 72 dpi). Returns RGBA.

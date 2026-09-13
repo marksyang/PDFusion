@@ -8,8 +8,13 @@ export declare class PdfCore {
   /** Close a previously loaded document. */
   close(id: number): void
   pageCount(id: number): number
-  /** Page size in PDF points (72 dpi). */
+  /**
+   * Page size in PDF points (72 dpi). For rotated pages this is the
+   * ROTATED (effective) size, matching the rendered bitmap.
+   */
   pageSize(id: number, index: number): PageSize
+  /** The page's /Rotate value: 0, 90, 180 or 270 (clockwise degrees). */
+  pageRotation(id: number, index: number): number
   /** Render a page at the given scale (1.0 == 72 dpi). Returns RGBA. */
   renderPage(id: number, index: number, scale: number): RenderedPage
   /** Render a page thumbnail (max dimension = size pixels). */

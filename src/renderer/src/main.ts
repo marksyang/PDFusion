@@ -8,7 +8,7 @@ import { annStore } from './annotations/AnnotationState'
 import { bakeAnnotations } from './annotations/BakeToPdf'
 import { hitTextSegment } from './textedit/TextHitTest'
 import { commitTextEdit } from './textedit/CommitText'
-import type { Tool } from './annotations/AnnotationModel'
+import type { Tool, Annotation } from './annotations/AnnotationModel'
 import type { SearchHit } from './global'
 
 const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4]
@@ -51,7 +51,17 @@ const thumbs = new PageThumbnails(
 )
 
 // Dev/debug handle (used by E2E dev triggers and the console).
-;(window as unknown as Record<string, unknown>).__debug = { annStore, controller, store: useStore }
+;(window as unknown as Record<string, unknown>).__debug = {
+  annStore,
+  controller,
+  store: useStore,
+  /** Dev-only: bake `anns` (view-space rects) into the doc and return bytes as an array. */
+  async bakeToBytes(docId: number, anns: unknown[]): Promise<number[]> {
+    await bakeAnnotations(controller.manager, anns as Annotation[], pageRotationsFor(docId))
+    const res = await controller.manager.save()
+    return Array.from(res.bytes as Uint8Array)
+  }
+}
 
 let hits: SearchHit[] = []
 let hitIndex = -1
@@ -227,6 +237,11 @@ function setTool(tool: Tool): void {
 toolButtons.forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool as Tool)))
 setTool('select')
 
+/** Resolve per-page /Rotate from the core for a given document id. */
+function pageRotationsFor(id: number): (page: number) => Promise<number> {
+  return (page: number) => window.pdfusion.core.pageRotation(id, page)
+}
+
 ;(document.getElementById('btn-bake') as HTMLButtonElement).addEventListener('click', () => {
   const s = docState()
   const anns = annStore.getState().annotations
@@ -234,8 +249,9 @@ setTool('select')
     hintEl.textContent = '沒有可烘焙的註解'
     return
   }
-  void controller.apply(`烘焙 ${anns.length} 筆註解`, s.docId, s.fileName, async () => {
-    await bakeAnnotations(controller.manager, anns)
+  const id = s.docId
+  void controller.apply(`烘焙 ${anns.length} 筆註解`, id, s.fileName, async () => {
+    await bakeAnnotations(controller.manager, anns, pageRotationsFor(id))
     return controller.manager.save()
   }).then((ok) => {
     if (ok) {
@@ -306,8 +322,9 @@ async function saveWorkingDoc(defaultName?: string): Promise<void> {
   // Auto-bake pending annotations so the saved file matches what is on screen.
   const pending = annStore.getState().annotations
   if (pending.length > 0) {
-    const baked = await controller.apply(`烘焙 ${pending.length} 筆註解`, s.docId, s.fileName, async () => {
-      await bakeAnnotations(controller.manager, pending)
+    const id = s.docId
+    const baked = await controller.apply(`烘焙 ${pending.length} 筆註解`, id, s.fileName, async () => {
+      await bakeAnnotations(controller.manager, pending, pageRotationsFor(id))
       return controller.manager.save()
     })
     if (!baked) {

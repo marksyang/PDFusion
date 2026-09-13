@@ -1,12 +1,17 @@
 import { PDFDocument, PDFFont, StandardFonts, rgb } from 'pdf-lib'
 import type { PageManager } from '../pageops/PageManager'
 import type { TextItem } from '../global'
+import { viewRectToPdf } from './Rotation'
 
 /**
  * CommitText — replaces a text segment in the working document:
  * 1. Cover the original with an opaque white rect (content stream).
  * 2. Re-draw the new text using the ORIGINAL embedded font bytes
  *    (extracted by the Rust core) when available, else Helvetica.
+ *
+ * `item` coordinates are VIEW space (top-left origin, /Rotate applied); they
+ * are converted to pdf-lib's unrotated user space. On rotated pages the new
+ * text runs along the page's NATIVE axis (consistent with the page content).
  *
  * Note: this is overlay-style editing (see docs/text-editing-limits.md).
  */
@@ -20,6 +25,8 @@ export async function commitTextEdit(
 ): Promise<void> {
   const trimmed = newText.trim()
   if (!trimmed) return
+
+  const rot = (await window.pdfusion.core.pageRotation(docId, page)) ?? 0
 
   // Extract the original font bytes (best effort).
   let fontBytes: ArrayBuffer | null = null
@@ -47,28 +54,36 @@ export async function commitTextEdit(
 
   pm.withDoc((doc) => {
     const pdfPage = doc.getPage(page)
+    // pdf-lib sizes are the UNROTATED MediaBox.
+    const W = pdfPage.getWidth()
     const H = pdfPage.getHeight()
 
-    // 1. Cover the old text (slightly expanded to hide glyphs).
-    pdfPage.drawRectangle({
+    // 1. Cover the old text (slightly expanded in view space, then converted).
+    const pr = viewRectToPdf(rot, W, H, {
       x: item.x - 1,
-      y: H - (item.y + item.height) - 1,
-      width: item.width + 2,
-      height: item.height + 2,
+      y: item.y - 1,
+      w: item.width + 2,
+      h: item.height + 2
+    })
+    pdfPage.drawRectangle({
+      x: pr.x,
+      y: pr.y,
+      width: pr.w,
+      height: pr.h,
       color: rgb(1, 1, 1)
     })
 
     // 2. Draw the replacement text (multi-line support via \n).
     const size = item.fontSize > 0 ? item.fontSize : item.height / 1.2
     const lineHeight = size * 1.25
+    const pdfTop = H - pr.y - pr.h // PDF top-left y of the converted rect
     const lines = newText.split('\n')
     try {
       lines.forEach((line, i) => {
-        const top = item.y + 1 + i * lineHeight
-        // Approximate baseline: ascent ≈ 0.8 of line height for typical fonts.
+        const top = pdfTop + 2 + i * lineHeight
         pdfPage.drawText(line, {
-          x: item.x + 1,
-          y: H - top - size * 0.8,
+          x: pr.x + 2,
+          y: H - top - size, // baseline
           size,
           font,
           color: rgb(0, 0, 0)

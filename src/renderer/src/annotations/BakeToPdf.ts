@@ -1,11 +1,12 @@
 import { PDFDocument, PDFFont, StandardFonts, rgb } from 'pdf-lib'
 import type { PageManager } from '../pageops/PageManager'
-import type { Annotation } from './AnnotationModel'
+import type { Annotation, Rect } from './AnnotationModel'
+import { viewPointToPdf, viewRectToPdf } from '../textedit/Rotation'
 
 /**
  * BakeToPdf — burns in-app annotations into the page content of the working
- * PDF document. pdf-lib has no annotation-writing API, so shapes are drawn
- * directly onto the page; the result renders identically in every viewer.
+ * PDF document. Annotation coordinates are VIEW space (top-left origin, /Rotate
+ * applied); they are converted to pdf-lib's unrotated user space per page.
  */
 
 const HIGHLIGHT = rgb(1, 0.878, 0)
@@ -32,62 +33,88 @@ function wrapText(text: string, width: number, fontSize: number): string[] {
   return lines.filter((l) => l.length > 0)
 }
 
+import type { PDFPage } from 'pdf-lib'
+
+function drawBakedText(page: PDFPage, pr: Rect, text: string, fontSize: number, font: PDFFont): void {
+  const H = page.getHeight()
+  // PDF-space top of the converted rect (0 = top of MediaBox).
+  const pdfTop = H - pr.y - pr.h
+  const lineHeight = fontSize * 1.25
+  const lines = wrapText(text, pr.w, fontSize)
+  lines.forEach((line, i) => {
+    const top = pdfTop + 2 + i * lineHeight
+    page.drawText(line, {
+      x: pr.x + 2,
+      y: H - top - fontSize, // baseline
+      size: fontSize,
+      font,
+      color: TEXT
+    })
+  })
+}
+
 /**
  * Burn all annotations into the working document in-place.
- * Font: Helvetica (standard) — embedded lazily by pdf-lib on save.
+ * `pageRotations` maps page index → /Rotate degrees (0/90/180/270).
  */
-export async function bakeAnnotations(pm: PageManager, annotations: Annotation[]): Promise<void> {
+export async function bakeAnnotations(
+  pm: PageManager,
+  annotations: Annotation[],
+  pageRotations: (page: number) => Promise<number>
+): Promise<void> {
   if (annotations.length === 0) return
 
   const font: PDFFont = await pm.withDoc((doc: PDFDocument) => doc.embedFont(StandardFonts.Helvetica))
 
+  // Resolve rotations for the pages that actually carry annotations.
+  const rotPages = [...new Set(annotations.map((a) => a.page))]
+  const rots = new Map<number, number>()
+  for (const p of rotPages) rots.set(p, (await pageRotations(p)) ?? 0)
+
   pm.withDoc((doc: PDFDocument) => {
     for (const ann of annotations) {
       const page = doc.getPage(ann.page)
+      // pdf-lib sizes are the UNROTATED MediaBox.
+      const W = page.getWidth()
       const H = page.getHeight()
-      // app coords: top-left origin (PDF points) → pdf-lib: bottom-left origin
-      const yTop = (y: number): number => H - y
+      const rot = rots.get(ann.page) ?? 0
 
       switch (ann.type) {
         case 'highlight':
+        case 'rect': {
+          const pr = viewRectToPdf(rot, W, H, ann.rect)
           page.drawRectangle({
-            x: ann.rect.x,
-            y: yTop(ann.rect.y + ann.rect.h),
-            width: ann.rect.w,
-            height: ann.rect.h,
-            color: HIGHLIGHT,
-            opacity: 0.42
+            x: pr.x,
+            y: pr.y,
+            width: pr.w,
+            height: pr.h,
+            color: ann.type === 'highlight' ? HIGHLIGHT : undefined,
+            opacity: ann.type === 'highlight' ? 0.42 : undefined,
+            borderColor: ann.type === 'rect' ? SHAPE : undefined,
+            borderWidth: ann.type === 'rect' ? 2 : undefined
           })
           break
+        }
 
-        case 'rect':
-          page.drawRectangle({
-            x: ann.rect.x,
-            y: yTop(ann.rect.y + ann.rect.h),
-            width: ann.rect.w,
-            height: ann.rect.h,
-            borderColor: SHAPE,
-            borderWidth: 2
-          })
-          break
-
-        case 'ellipse':
+        case 'ellipse': {
+          const pr = viewRectToPdf(rot, W, H, ann.rect)
           page.drawEllipse({
-            x: ann.rect.x + ann.rect.w / 2,
-            y: yTop(ann.rect.y + ann.rect.h / 2),
-            xScale: ann.rect.w / 2,
-            yScale: ann.rect.h / 2,
+            x: pr.x + pr.w / 2,
+            y: pr.y + pr.h / 2,
+            xScale: pr.w / 2,
+            yScale: pr.h / 2,
             borderColor: SHAPE,
             borderWidth: 2
           })
           break
+        }
 
         case 'ink': {
-          const pts = ann.points
+          const pts = ann.points.map((p) => viewPointToPdf(rot, W, H, p))
           for (let i = 1; i < pts.length; i++) {
             page.drawLine({
-              start: { x: pts[i - 1].x, y: yTop(pts[i - 1].y) },
-              end: { x: pts[i].x, y: yTop(pts[i].y) },
+              start: pts[i - 1],
+              end: pts[i],
               thickness: 2,
               color: INK
             })
@@ -96,18 +123,8 @@ export async function bakeAnnotations(pm: PageManager, annotations: Annotation[]
         }
 
         case 'freetext': {
-          const lines = wrapText(ann.text, ann.rect.w, ann.fontSize)
-          const lineHeight = ann.fontSize * 1.25
-          lines.forEach((line, i) => {
-            const top = ann.rect.y + 2 + i * lineHeight
-            page.drawText(line, {
-              x: ann.rect.x + 2,
-              y: H - top - ann.fontSize, // baseline (bottom-left coords)
-              size: ann.fontSize,
-              font,
-              color: TEXT
-            })
-          })
+          const pr: Rect = viewRectToPdf(rot, W, H, ann.rect)
+          drawBakedText(page, pr, ann.text, ann.fontSize, font)
           break
         }
       }

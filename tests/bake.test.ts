@@ -28,7 +28,7 @@ describe('bakeAnnotations', () => {
         ]
       },
       { id: 't1', type: 'freetext', page: 0, rect: { x: 50, y: 500, w: 300, h: 40 }, text: 'hello world', fontSize: 13 }
-    ])
+    ], (page: number) => Promise.resolve(0))
 
     const res = await pm.save()
     expect(res.pageCount).toBe(1)
@@ -46,7 +46,7 @@ describe('bakeAnnotations', () => {
     const bytes = new Uint8Array(await doc.save())
     const pm = new PageManager()
     await pm.load(bytes)
-    await bakeAnnotations(pm, [])
+    await bakeAnnotations(pm, [], () => Promise.resolve(0))
     const res = await pm.save()
     expect(res.pageCount).toBe(1)
   })
