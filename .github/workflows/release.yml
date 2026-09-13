@@ -1,0 +1,65 @@
+name: Build & Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach artifacts to (e.g. v1.0.0)'
+        required: true
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            builder-args: --mac
+            assets: 'dist/*.dmg'
+          - os: windows-latest
+            builder-args: --win
+            assets: 'dist/*-setup.exe'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - uses: swatinem/actions-rust-cache@v2
+        with:
+          workspaces: core -> target
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build native core (release) + app bundle
+        run: |
+          npm run core:build:release
+          npm run build
+
+      - name: Package (electron-builder)
+        run: npx electron-builder ${{ matrix.builder-args }} --publish never
+
+      - name: Attach to GitHub Release
+        if: ${{ github.event_name == 'push' || inputs.tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          files: ${{ matrix.assets }}
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
