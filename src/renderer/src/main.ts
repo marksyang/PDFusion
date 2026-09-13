@@ -50,6 +50,9 @@ const thumbs = new PageThumbnails(
   }
 )
 
+// Dev/debug handle (used by E2E dev triggers and the console).
+;(window as unknown as Record<string, unknown>).__debug = { annStore, controller }
+
 let hits: SearchHit[] = []
 let hitIndex = -1
 
@@ -267,6 +270,7 @@ annotLayer.onEditClick = async (page, x, y) => {
   wrap.appendChild(input)
   input.focus()
   input.select()
+  hintEl.textContent = '輸入新文字：Enter 套用 / Esc 取消'
   let done = false
   const commit = async () => {
     if (done) return
@@ -299,11 +303,25 @@ async function saveWorkingDoc(defaultName?: string): Promise<void> {
   const s = docState()
   if (s.docId === null) return
   hintEl.textContent = '儲存中…'
+  // Auto-bake pending annotations so the saved file matches what is on screen.
+  const pending = annStore.getState().annotations
+  if (pending.length > 0) {
+    const baked = await controller.apply(`烘焙 ${pending.length} 筆註解`, s.docId, s.fileName, async () => {
+      await bakeAnnotations(controller.manager, pending)
+      return controller.manager.save()
+    })
+    if (!baked) {
+      hintEl.textContent = '儲存取消：註解烘焙失敗'
+      return
+    }
+    annStore.getState().clear()
+  }
   try {
     const res = await controller.manager.save()
     const base = defaultName ?? (s.fileName.endsWith('.pdf') ? s.fileName : `${s.fileName}.pdf`)
     await window.pdfusion.fs.saveAs(base, res.bytes)
-    hintEl.textContent = `已儲存 ${base}`
+    hintEl.textContent =
+      `已儲存 ${base}` + (pending.length > 0 ? `（含 ${pending.length} 筆註解）` : '')
   } catch (err) {
     hintEl.textContent = `失敗：儲存 — ${String(err)}`
   }

@@ -142,7 +142,7 @@ PDFusion/
 - [x] **8. 選單與快捷键**：macOS 原生選單 + Cmd/Ctrl-S、翻頁、縮放
 - [x] **9. 測試**：cargo test（core smoke：render/text/font）、Vitest unit（PageManager、AnnotationModel、CommitText），fixtures 產生 script
 - [x] **10. 打包**：`napi build --platform windows/mac --release` 交叉建置 .node；electron-builder dmg（macOS）+ nsis（Windows）；resources/pdfium 隨包；README 寫明 Rust 工具鏈安裝、Mac Gatekeeper 放行
-- [ ] **11. 收尾**：README、授權相容性檢查（PDFium Apache-2.0、pdf-lib MIT、napi-rs MIT/Apache — 與 MIT 相容）、`docs/text-editing-limits.md`
+- [x] **11. 收尾**：README、授權相容性檢查（PDFium Apache-2.0、pdf-lib MIT、napi-rs MIT/Apache — 與 MIT 相容）、`docs/text-editing-limits.md`
 
 ## Verification
 

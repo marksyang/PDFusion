@@ -28,6 +28,7 @@ export class AnnotationLayer {
   private temp: { type: string; page: number; sx: number; sy: number; cx: number; cy: number; points?: Array<{ x: number; y: number }> } | null = null
   private unsubscribe: (() => void) | null = null
   onEditClick: ((page: number, x: number, y: number) => void) | null = null
+  private erasing = false
   private onKey: (e: KeyboardEvent) => void
   private onPageRendered: (() => void) | null = null
 
@@ -86,6 +87,16 @@ export class AnnotationLayer {
       (e) => {
         const p = this.toPdf(e, canvas)
         const tool = annStore.getState().tool
+        if (tool === 'eraser') {
+          this.erasing = true
+          try {
+            canvas.setPointerCapture(e.pointerId)
+          } catch {
+            // ignore synthetic events
+          }
+          this.eraseAt(page, p.x, p.y)
+          return
+        }
         if (tool === 'edit') {
           this.onEditClick?.(page, p.x, p.y)
           return
@@ -117,6 +128,11 @@ export class AnnotationLayer {
     )
 
     canvas.addEventListener('pointermove', (e) => {
+      if (this.erasing && e.buttons === 1) {
+        const pe = this.toPdf(e, canvas)
+        this.eraseAt(page, pe.x, pe.y)
+        return
+      }
       if (!this.temp || this.temp.page !== page) return
       const p = this.toPdf(e, canvas)
       if (this.temp.type === 'ink' && this.temp.points) {
@@ -130,6 +146,10 @@ export class AnnotationLayer {
     })
 
     canvas.addEventListener('pointerup', (e) => {
+      if (this.erasing) {
+        this.erasing = false
+        return
+      }
       if (!this.temp || this.temp.page !== page) return
       const t = this.temp
       this.temp = null
@@ -150,6 +170,18 @@ export class AnnotationLayer {
     })
   }
 
+  /** Remove the top-most annotation under (x, y) — used by the eraser tool. */
+  private eraseAt(page: number, x: number, y: number): void {
+    const s = annStore.getState()
+    const anns = s.annotations.filter((a) => a.page === page)
+    for (let i = anns.length - 1; i >= 0; i--) {
+      if (hitTest(anns[i], x, y, 6)) {
+        s.remove(anns[i].id)
+        return
+      }
+    }
+  }
+
   private openFreetextInput(canvas: HTMLCanvasElement, page: number, rect: Rect): void {
     const wrap = canvas.parentElement as HTMLElement
     const s = PT_TO_CSS * this.zoom()
@@ -161,7 +193,10 @@ export class AnnotationLayer {
     input.style.fontSize = `${13 * s}px`
     wrap.appendChild(input)
     input.focus()
+    let done = false
     const commit = () => {
+      if (done) return
+      done = true
       const text = input.value.trim()
       if (text) {
         const ann: FreeTextAnnotation = {

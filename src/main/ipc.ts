@@ -187,6 +187,12 @@ export function registerCoreIpc(): void {
   ipcMain.handle(
     'file:save-as',
     async (_e, defaultName: string, bytes: Uint8Array): Promise<boolean> => {
+      // Dev-only bypass: write directly into a directory (no dialog).
+      const devDir = process.env['PDFUSION_DEV_SAVE']
+      if (devDir) {
+        writeFileSync(join(devDir, defaultName), Buffer.from(bytes))
+        return true
+      }
       const result = await dialog.showSaveDialog({
         title: '儲存 PDF',
         defaultPath: join(app.getPath('documents'), defaultName),

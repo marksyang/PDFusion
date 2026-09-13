@@ -3,7 +3,7 @@
  * Coordinates are PDF points with top-left origin (matching core text/search rects).
  */
 
-export type Tool = 'select' | 'highlight' | 'freetext' | 'edit' | 'rect' | 'ellipse' | 'ink'
+export type Tool = 'select' | 'highlight' | 'freetext' | 'edit' | 'eraser' | 'rect' | 'ellipse' | 'ink'
 
 export interface Rect {
   x: number
@@ -83,8 +83,7 @@ export function inkBounds(points: Array<{ x: number; y: number }>): Rect {
 }
 
 /** Hit-test an annotation at a point (PDF points). */
-export function hitTest(ann: Annotation, px: number, py: number): boolean {
+export function hitTest(ann: Annotation, px: number, py: number, pad = 3): boolean {
   const r = ann.type === 'ink' ? inkBounds(ann.points) : ann.rect
-  const pad = 3
   return px >= r.x - pad && px <= r.x + r.w + pad && py >= r.y - pad && py <= r.y + r.h + pad
 }

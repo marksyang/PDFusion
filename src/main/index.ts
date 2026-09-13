@@ -148,6 +148,71 @@ app.whenReady().then(() => {
             console.log('[pdfusion] dev textedit hint:', state)
           }, 6500)
         }
+        if (process.env['PDFUSION_DEV_TEXTEDIT_SAVE']) {
+          setTimeout(async () => {
+            await mainWindow?.webContents.executeJavaScript(`new Promise((resolve) => {
+              document.querySelector('[data-tool=edit]').click();
+              const canvas = document.querySelector('.page-wrap .annot-canvas');
+              const r = canvas.getBoundingClientRect();
+              const s2 = 96/72;
+              canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX: r.left + 305*s2, clientY: r.top + 132*s2, pointerId: 1, isPrimary: true, bubbles: true }));
+              setTimeout(() => {
+                const input = document.querySelector('.freetext-input');
+                if (!input) { resolve('NO-INPUT'); return; }
+                input.value = 'lazy FUSION dog';
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                setTimeout(() => {
+                  document.getElementById('btn-save').click();
+                  setTimeout(() => resolve(document.getElementById('hint').textContent), 2000);
+                }, 1500);
+              }, 600);
+            })`)
+            console.log('[pdfusion] dev edit-save:', await mainWindow?.webContents.executeJavaScript(`document.getElementById('hint').textContent`))
+          }, 2500)
+        }
+        if (process.env['PDFUSION_DEV_FIX']) {
+          setTimeout(async () => {
+            const r = await mainWindow?.webContents.executeJavaScript(`new Promise((resolve) => {
+              const $ = (sel) => document.querySelector(sel);
+              const canvas = $('.page-wrap .annot-canvas');
+              const rect = canvas.getBoundingClientRect();
+              const s = 96/72;
+              const mk = (t, x, y) => new PointerEvent(t, { clientX: rect.left + x*s, clientY: rect.top + y*s, pointerId: 1, isPrimary: true, bubbles: true });
+              $('[data-tool=freetext]').click();
+              canvas.dispatchEvent(mk('pointerdown', 100, 400));
+              canvas.dispatchEvent(mk('pointermove', 300, 420));
+              canvas.dispatchEvent(mk('pointerup', 300, 420));
+              setTimeout(() => {
+                const input = $('.freetext-input');
+                const color = input ? getComputedStyle(input).color : 'NO-INPUT';
+                if (input) {
+                  input.value = 'TEST-FREE-123';
+                  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                }
+                setTimeout(() => {
+                  $('[data-tool=highlight]').click();
+                  canvas.dispatchEvent(mk('pointerdown', 100, 450));
+                  canvas.dispatchEvent(mk('pointermove', 320, 470));
+                  canvas.dispatchEvent(mk('pointerup', 320, 470));
+                  setTimeout(() => {
+                    const n1 = window.__debug.annStore.getState().annotations.length;
+                    $('[data-tool=eraser]').click();
+                    canvas.dispatchEvent(mk('pointerdown', 200, 460));
+                    canvas.dispatchEvent(mk('pointerup', 200, 460));
+                    const n2 = window.__debug.annStore.getState().annotations.length;
+                    $('#btn-save').click();
+                    setTimeout(() => {
+                      const hint = document.getElementById('hint').textContent;
+                      const n3 = window.__debug.annStore.getState().annotations.length;
+                      resolve(JSON.stringify({ color, n1, n2, n3, hint }));
+                    }, 2500);
+                  }, 400);
+                }, 400);
+              }, 300);
+            })`)
+            console.log('[pdfusion] dev fix:', r)
+          }, 2500)
+        }
         setTimeout(async () => {
           try {
             const image = await mainWindow?.webContents.capturePage()
