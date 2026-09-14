@@ -21,6 +21,16 @@ const pageLabel = document.getElementById('page-label') as HTMLSpanElement
 const zoomLabel = document.getElementById('zoom-label') as HTMLSpanElement
 const searchInput = document.getElementById('search-input') as HTMLInputElement
 
+// Font size picker for new freetext annotations.
+const fontSizeSelect = document.getElementById('font-size') as HTMLSelectElement
+fontSizeSelect.addEventListener('change', () => {
+  useStore.getState().setTextFontSize(Number(fontSizeSelect.value))
+})
+// Keep the toolbar picker in sync when an in-place size picker changes it.
+useStore.subscribe((state, prev) => {
+  if (state.textFontSize !== prev.textFontSize) fontSizeSelect.value = String(state.textFontSize)
+})
+
 const viewer = new PdfViewer(viewerEl)
 const annotLayer = new AnnotationLayer(viewerEl)
 annotLayer.attach()

@@ -79,11 +79,11 @@ body {
 }
 
 /* 自訂 hover tooltip（取代原生 title，顯示更快、樣式統一） */
-#toolbar button[data-tip] {
+#toolbar [data-tip] {
   position: relative;
 }
 
-#toolbar button[data-tip]::after {
+#toolbar [data-tip]::after {
   content: attr(data-tip);
   position: absolute;
   top: calc(100% + 8px);
@@ -103,9 +103,36 @@ body {
   z-index: 200;
 }
 
-#toolbar button[data-tip]:hover::after {
+#toolbar [data-tip]:hover::after {
   opacity: 1;
   transition-delay: 0.35s;
+}
+
+/* 字型大小選單 */
+#toolbar .fs-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #4a4d57;
+  border: 1px solid #5a5d68;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #e8e9ed;
+}
+
+#toolbar .fs-picker select {
+  background: transparent;
+  color: #e8e9ed;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+#toolbar .fs-picker select option {
+  background: #34363d;
+  color: #e8e9ed;
 }
 
 #doc-title {
@@ -265,6 +292,20 @@ body {
   color: #111111;
   font-family: -apple-system, 'Segoe UI', sans-serif;
   outline: none;
+}
+
+/* 輸入框旁的字型大小選單（輸入中可調整） */
+.freetext-fs {
+  position: absolute;
+  z-index: 11;
+  margin: 0;
+  padding: 2px 4px;
+  border: 1.5px solid #1a73e8;
+  border-radius: 4px;
+  background: #ffffffee;
+  color: #111111;
+  font-family: -apple-system, 'Segoe UI', sans-serif;
+  cursor: pointer;
 }
 
 .page-wrap[data-tool='eraser'] .annot-canvas {

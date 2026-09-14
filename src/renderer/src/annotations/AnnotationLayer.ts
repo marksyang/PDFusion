@@ -7,6 +7,9 @@ import {
 } from './AnnotationModel'
 import type { Annotation, FreeTextAnnotation, Rect } from './AnnotationModel'
 import { annStore } from './AnnotationState'
+import { useStore } from '../store'
+
+export const FONT_SIZE_OPTIONS = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40]
 
 const COLORS = {
   highlight: 'rgba(255, 224, 0, 0.42)',
@@ -191,13 +194,38 @@ export class AnnotationLayer {
   private openFreetextInput(canvas: HTMLCanvasElement, page: number, rect: Rect): void {
     const wrap = canvas.parentElement as HTMLElement
     const s = PT_TO_CSS * this.zoom()
+    let fontSize = useStore.getState().textFontSize
+    if (!FONT_SIZE_OPTIONS.includes(fontSize)) fontSize = 14
     const input = document.createElement('input')
     input.className = 'freetext-input'
+    const inputW = Math.max(rect.w, 120)
     input.style.left = `${rect.x * s}px`
     input.style.top = `${rect.y * s}px`
-    input.style.width = `${Math.max(rect.w, 120) * s}px`
-    input.style.fontSize = `${13 * s}px`
+    input.style.width = `${inputW * s}px`
+    input.style.fontSize = `${fontSize * s}px`
+
+    // Size picker beside the input: adjustable WHILE typing.
+    const sizeSel = document.createElement('select')
+    sizeSel.className = 'freetext-fs'
+    sizeSel.title = '字型大小'
+    for (const v of FONT_SIZE_OPTIONS) {
+      const o = document.createElement('option')
+      o.value = String(v)
+      o.textContent = `${v}`
+      sizeSel.appendChild(o)
+    }
+    sizeSel.value = String(fontSize)
+    sizeSel.style.left = `${(rect.x + inputW + 6) * s}px`
+    sizeSel.style.top = `${rect.y * s}px`
+    sizeSel.style.fontSize = `${Math.max(11, fontSize) * s}px`
+    // Don't let the input blur (and commit) while picking a size.
+    sizeSel.addEventListener('mousedown', (e) => e.preventDefault())
+    sizeSel.addEventListener('change', () => {
+      fontSize = Number(sizeSel.value)
+      input.style.fontSize = `${fontSize * s}px`
+    })
     wrap.appendChild(input)
+    wrap.appendChild(sizeSel)
     input.focus()
     let done = false
     const commit = () => {
@@ -211,17 +239,21 @@ export class AnnotationLayer {
           page,
           rect,
           text,
-          fontSize: 13
+          fontSize
         }
         annStore.getState().add(ann)
       }
+      useStore.getState().setTextFontSize(fontSize)
       input.remove()
+      sizeSel.remove()
       this.redraw()
     }
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') commit()
       else if (e.key === 'Escape') {
+        done = true // cancel: don't commit on the ensuing blur
         input.remove()
+        sizeSel.remove()
       }
     })
     input.addEventListener('blur', commit)
