@@ -62,7 +62,7 @@ describe('narrow freetext box', () => {
     core.close(id)
     expect(items.length).toBeGreaterThan(0)
     // Not one-character-per-line: at least one item carries 2+ of the chars.
-    const multi = items.some((i: any) => [...new Set(i.text)].filter((c) => '中文測試'.includes(c)).length >= 2)
+    const multi = items.some((i: any) => [...new Set(String(i.text).split(''))].filter((c: string) => '中文測試'.includes(c)).length >= 2)
     expect(multi).toBe(true)
   })
 
@@ -105,7 +105,7 @@ describe('narrow freetext box', () => {
       .filter((i: any) => /[中文測試]/.test(i.text) && i.x > 60 && i.x < 300 && i.y > 250 && i.y < 450)
     core.close(id2)
     expect(items.length).toBeGreaterThan(0)
-    const multi = items.some((i: any) => [...new Set(i.text)].filter((c) => '中文測試'.includes(c)).length >= 2)
+    const multi = items.some((i: any) => [...new Set(String(i.text).split(''))].filter((c: string) => '中文測試'.includes(c)).length >= 2)
     expect(multi).toBe(true)
   })
 })
