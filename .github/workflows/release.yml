@@ -47,6 +47,7 @@ jobs:
           npm run build
 
       - name: Package (electron-builder)
+        shell: bash
         run: |
           # GitHub's release CDN occasionally returns 504 while electron-builder
           # downloads the Electron zip; retry a few times before failing.
