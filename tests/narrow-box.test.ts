@@ -109,3 +109,43 @@ describe('narrow freetext box', () => {
     expect(multi).toBe(true)
   })
 })
+
+describe('multi-line freetext', () => {
+  it('bakes newline text as separate lines (rot 0)', async () => {
+    const doc = await PDFDocument.create()
+    doc.addPage([612, 792])
+    const pm = new PageManager()
+    await pm.load(new Uint8Array(await doc.save()))
+
+    await bakeAnnotations(
+      pm,
+      [
+        {
+          id: 'm1',
+          type: 'freetext',
+          page: 0,
+          rect: { x: 100, y: 300, w: 300, h: 60 },
+          text: '第一行\n第二行',
+          fontSize: 14
+        }
+      ],
+      () => Promise.resolve(0)
+    )
+    const res = await pm.save()
+
+    const core = await makeCore()
+    const id = core.loadPdf(res.bytes as unknown as Uint8Array)
+    const items = core
+      .getTextItems(id, 0)
+      .filter((i: any) => i.text.includes('第一行') || i.text.includes('第二行'))
+    core.close(id)
+    expect(items.length).toBeGreaterThanOrEqual(2)
+    const ys = items.map((i: any) => i.y).sort((a: number, b: number) => a - b)
+    // Two distinct lines: vertical gap close to lineHeight (14 * 1.25 = 17.5).
+    expect(ys[ys.length - 1] - ys[0]).toBeGreaterThanOrEqual(12)
+    // Line order: 第一行 above 第二行.
+    const first = items.find((i: any) => i.text.includes('第一行'))
+    const second = items.find((i: any) => i.text.includes('第二行'))
+    expect(first!.y).toBeLessThan(second!.y)
+  })
+})

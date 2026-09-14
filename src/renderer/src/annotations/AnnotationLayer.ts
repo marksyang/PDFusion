@@ -196,13 +196,18 @@ export class AnnotationLayer {
     const s = PT_TO_CSS * this.zoom()
     let fontSize = useStore.getState().textFontSize
     if (!FONT_SIZE_OPTIONS.includes(fontSize)) fontSize = 14
-    const input = document.createElement('input')
+    const input = document.createElement('textarea')
     input.className = 'freetext-input'
+    input.rows = 1
     const inputW = Math.max(rect.w, 120)
     input.style.left = `${rect.x * s}px`
     input.style.top = `${rect.y * s}px`
     input.style.width = `${inputW * s}px`
     input.style.fontSize = `${fontSize * s}px`
+    const autosize = () => {
+      input.style.height = 'auto'
+      input.style.height = `${input.scrollHeight}px`
+    }
 
     // Size picker beside the input: adjustable WHILE typing.
     // NOTE: mousedown must NOT be preventDefault'd (that blocks the dropdown
@@ -229,11 +234,13 @@ export class AnnotationLayer {
       picking = false
       fontSize = Number(sizeSel.value)
       input.style.fontSize = `${fontSize * s}px`
+      autosize()
       input.focus()
     })
     wrap.appendChild(input)
     wrap.appendChild(sizeSel)
     input.focus()
+    autosize()
     let done = false
     const commit = () => {
       if (done) return
@@ -255,13 +262,19 @@ export class AnnotationLayer {
       sizeSel.remove()
       this.redraw()
     }
+    input.addEventListener('input', autosize)
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') commit()
-      else if (e.key === 'Escape') {
+      // IME: Enter confirms a candidate, it must not commit the annotation.
+      if (e.isComposing) return
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        commit()
+      } else if (e.key === 'Escape') {
         done = true // cancel: don't commit on the ensuing blur
         input.remove()
         sizeSel.remove()
       }
+      // Shift+Enter falls through: inserts a newline (multi-line text).
     })
     input.addEventListener('blur', () => {
       if (picking) {
