@@ -2,7 +2,7 @@ import { PDFDocument, PDFFont, StandardFonts, rgb } from 'pdf-lib'
 import type { PageManager } from '../pageops/PageManager'
 import type { Annotation, Rect } from './AnnotationModel'
 import { viewPointToPdf, viewRectToPdf } from '../textedit/Rotation'
-import { drawRotatedText } from '../textedit/RotatedText'
+import { drawRotatedText, textLineHeight } from '../textedit/RotatedText'
 import { pickTextFont } from '../textedit/CjkFont'
 
 /**
@@ -86,7 +86,7 @@ function drawBakedText(page: PDFPage, pr: Rect, text: string, fontSize: number, 
   const H = page.getHeight()
   // PDF-space top of the converted rect (0 = top of MediaBox).
   const pdfTop = H - pr.y - pr.h
-  const lineHeight = fontSize * 1.25
+  const lineHeight = textLineHeight(fontSize, font)
   const lines = wrapText(text, Math.max(pr.w, minTextWrapWidth(fontSize)), fontSize)
   lines.forEach((line, i) => {
     const top = pdfTop + 2 + i * lineHeight

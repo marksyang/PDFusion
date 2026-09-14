@@ -38,6 +38,21 @@ interface PDFPageLow {
 }
 
 /**
+ * Line height for multi-line text. Must respect the font's actual vertical
+ * metrics: CJK fonts (e.g. Noto Sans TC) have ascender+descender ≈ 1.44em,
+ * so a fixed 1.25×fontSize makes lines overlap at larger sizes.
+ */
+export function textLineHeight(fontSize: number, font: PDFFont): number {
+  let h = fontSize * 1.25
+  try {
+    h = Math.max(h, font.heightAtSize(fontSize) * 1.06)
+  } catch {
+    // heightAtSize unavailable — keep the conservative default.
+  }
+  return h
+}
+
+/**
  * Draw `lines` at the given VIEW-space origin (top-left of the text block).
  * W/H are the UNROTATED MediaBox dimensions. Throws if the font cannot encode
  * the text (e.g. CJK glyphs in a Western font).
@@ -59,7 +74,7 @@ export function drawRotatedText(
   if (!node) throw new Error('pdf-lib page node unavailable (need pdf-lib >= 1.16)')
 
   const fontName = node.newFontDictionary('F', (font as unknown as { ref: unknown }).ref)
-  const lineHeight = fontSize * 1.25
+  const lineHeight = textLineHeight(fontSize, font)
   const [a, b, c, d] = MAT[rot] ?? MAT[0]
   const N = (v: number) => PDFNumber.of(v)
 
