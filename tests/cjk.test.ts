@@ -36,14 +36,15 @@ describe('CJK fallback font', () => {
 
     // raw path (rotated style): content stream + cm + Tf + Tj
     const key = page.node.newFontDictionary('CJK', cjk.ref)
+    const of = PDFOperator.of as unknown as (name: string, args?: unknown[]) => ReturnType<typeof PDFOperator.of>
     const ops = [
-      PDFOperator.of('q', []),
-      PDFOperator.of('cm', [PDFNumber.of(1), PDFNumber.of(0), PDFNumber.of(0), PDFNumber.of(1), PDFNumber.of(50), PDFNumber.of(350)]),
-      PDFOperator.of('BT', []),
-      PDFOperator.of('Tf', [key, PDFNumber.of(16)]),
-      PDFOperator.of('Tj', [cjk.encodeText('原始流中文')]),
-      PDFOperator.of('ET', []),
-      PDFOperator.of('Q', [])
+      of('q', []),
+      of('cm', [PDFNumber.of(1), PDFNumber.of(0), PDFNumber.of(0), PDFNumber.of(1), PDFNumber.of(50), PDFNumber.of(350)]),
+      of('BT', []),
+      of('Tf', [key, PDFNumber.of(16)]),
+      of('Tj', [cjk.encodeText('原始流中文')]),
+      of('ET', []),
+      of('Q', [])
     ]
     const cs = doc.context.contentStream(ops)
     page.node.addContentStream(doc.context.register(cs))
