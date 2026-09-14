@@ -17,6 +17,15 @@ const INK = rgb(0.851, 0.188, 0.145)
 const TEXT = rgb(0.07, 0.07, 0.07)
 const TEXT_RGB: [number, number, number] = [0.07, 0.07, 0.07]
 
+/**
+ * Minimum wrap width for text annotations: never narrower than ~2.4em, so a
+ * sliver box degrades to horizontal overflow instead of stacking CJK one
+ * character per line (a vertical column).
+ */
+export function minTextWrapWidth(fontSize: number): number {
+  return Math.max(fontSize * 2.4, fontSize + 12)
+}
+
 /** CJK/fullwidth-ish code point? (used for wrap width estimation) */
 function isWide(ch: string): boolean {
   const cp = ch.codePointAt(0) ?? 0
@@ -78,7 +87,7 @@ function drawBakedText(page: PDFPage, pr: Rect, text: string, fontSize: number, 
   // PDF-space top of the converted rect (0 = top of MediaBox).
   const pdfTop = H - pr.y - pr.h
   const lineHeight = fontSize * 1.25
-  const lines = wrapText(text, pr.w, fontSize)
+  const lines = wrapText(text, Math.max(pr.w, minTextWrapWidth(fontSize)), fontSize)
   lines.forEach((line, i) => {
     const top = pdfTop + 2 + i * lineHeight
     page.drawText(line, {
@@ -170,7 +179,11 @@ export async function bakeAnnotations(
           } else {
             // Rotated page: draw via raw content stream so the text reads in
             // the view orientation (pdf-lib drawText cannot rotate).
-            const lines = wrapText(ann.text, ann.rect.w, ann.fontSize)
+            const lines = wrapText(
+              ann.text,
+              Math.max(ann.rect.w, minTextWrapWidth(ann.fontSize)),
+              ann.fontSize
+            )
             drawRotatedText(
               doc,
               page,

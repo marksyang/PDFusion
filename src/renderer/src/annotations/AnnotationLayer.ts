@@ -159,7 +159,13 @@ export class AnnotationLayer {
           annStore.getState().add({ id: nextId(), type: 'ink', page, points: t.points })
         }
       } else if (t.type === 'freetext') {
-        const rect = normalizeRect(t.sx, t.sy, p.x, p.y)
+        let rect = normalizeRect(t.sx, t.sy, p.x, p.y)
+        // A (near-)click is only a few points wide; baking into such a sliver
+        // wraps CJK one character per line (a vertical column). Use a sensible
+        // default box anchored at the click instead.
+        if (rect.w < 60 || rect.h < 18) {
+          rect = { x: t.sx, y: t.sy, w: 240, h: 28 }
+        }
         this.openFreetextInput(canvas, page, rect)
       } else {
         const rect = normalizeRect(t.sx, t.sy, p.x, p.y)
