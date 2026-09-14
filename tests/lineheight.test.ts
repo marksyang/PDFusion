@@ -101,3 +101,12 @@ describe('line height respects font metrics (no overlap at large sizes)', () => 
     expect(noVerticalOverlap(items)).toBe(true)
   }, 30000)
 })
+
+describe('overlay line height matches bake', () => {
+  it('CJK → 1.4em, Latin → 1.25em (same as baked text)', async () => {
+    const { overlayLineHeight } = await import('../src/renderer/src/annotations/BakeToPdf')
+    expect(overlayLineHeight('一二三四', 20)).toBe(28) // 1.4 × 20
+    expect(overlayLineHeight('hello world', 20)).toBe(25) // 1.25 × 20
+    expect(overlayLineHeight('混合abc', 24)).toBeCloseTo(33.6, 5)
+  })
+})

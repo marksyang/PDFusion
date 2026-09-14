@@ -292,7 +292,7 @@ body {
   background: rgba(255, 255, 255, 0.96);
   color: #111111;
   font-family: -apple-system, 'Segoe UI', sans-serif;
-  line-height: 1.5; /* CJK 預覽行距：太小（如 1.35）會在輸入時重疊 */
+  line-height: 1.4; /* 與烘焙一致（CJK 1.4em）；1.35 會重疊、1.5 過鬆 */
   resize: none;
   overflow: hidden;
   white-space: pre-wrap;

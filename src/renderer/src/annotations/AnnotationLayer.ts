@@ -8,6 +8,7 @@ import {
 import type { Annotation, FreeTextAnnotation, Rect } from './AnnotationModel'
 import { annStore } from './AnnotationState'
 import { useStore } from '../store'
+import { overlayLineHeight } from './BakeToPdf'
 
 export const FONT_SIZE_OPTIONS = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40]
 
@@ -371,7 +372,7 @@ export class AnnotationLayer {
         ctx.fillStyle = COLORS.freetext
         ctx.font = `${ann.fontSize}px -apple-system, 'Segoe UI', sans-serif`
         ctx.textBaseline = 'top'
-        this.drawWrappedText(ctx, ann.text, ann.rect)
+        this.drawWrappedText(ctx, ann.text, ann.rect, ann.fontSize)
         break
       case 'rect':
         ctx.strokeStyle = COLORS.shape
@@ -405,9 +406,11 @@ export class AnnotationLayer {
     ctx.restore()
   }
 
-  private drawWrappedText(ctx: CanvasRenderingContext2D, text: string, rect: Rect): void {
+  private drawWrappedText(ctx: CanvasRenderingContext2D, text: string, rect: Rect, fontSize: number): void {
     const lines = text.split('\n')
-    const lineHeight = 14
+    // Same rhythm as the baked PDF (1.4em CJK / 1.25em Latin) so the overlay
+    // aligns with the rendered text underneath.
+    const lineHeight = overlayLineHeight(text, fontSize)
     let y = rect.y + 2
     for (const line of lines) {
       // Naive word wrap by measured width.

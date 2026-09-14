@@ -42,6 +42,20 @@ function isWide(ch: string): boolean {
   )
 }
 
+/** True if any character is CJK/fullwidth (drives font + line-height choices). */
+export function containsWide(text: string): boolean {
+  for (const ch of text) if (isWide(ch)) return true
+  return false
+}
+
+/**
+ * Preview/overlay line height matching the baked result:
+ * 1.4em for text containing CJK (same cap as bake), 1.25em otherwise.
+ */
+export function overlayLineHeight(text: string, fontSize: number): number {
+  return (containsWide(text) ? 1.4 : 1.25) * fontSize
+}
+
 function textWidthPx(text: string, fontSize: number): number {
   let w = 0
   for (const ch of text) w += (isWide(ch) ? 1.0 : 0.52) * fontSize
