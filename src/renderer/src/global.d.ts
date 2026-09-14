@@ -53,6 +53,9 @@ declare global {
         getBytes(id: number): Promise<Uint8Array | null>
         reload(oldId: number, bytes: Uint8Array): Promise<number>
       }
+      fonts: {
+        cjk(): Promise<Uint8Array>
+      }
       fs: {
         open(): Promise<OpenedPdf>
         openImage(): Promise<{ ok: boolean; path: string; bytes?: Uint8Array; error?: string }>

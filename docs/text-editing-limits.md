@@ -51,4 +51,7 @@ PDF 的文字不是「可選取的資料」，而是一連串繪圖指令（內�
     （曾把文字空間 +y 誤當視圖向下，導致字形上下顛倒——「1234 反過來」即此 bug。）
 - 已知限制：
   - 旋轉頁上的新文字使用標準字型（或原文嵌入字型的 raw 引用），無法自動換行到下一「列」以外的版面流程（同非旋轉頁的 overlay 編輯限制）。
+  - **中日韓文字**：當原文字型無法編碼輸入的文字時（例如西文文件輸入 CJK），自動改用內附的
+    Noto Sans TC（SIL OFL，`resources/fonts/`；嵌入時 fontkit 自動 subset，PDF 體積增加很小）。
+    文字編輯（改字）與 free text 皆支援；混合 CJK/Latin 時整段以 Noto Sans TC 繪製。
   - PDFium 不支援 /Contents 陣列內的 inline stream，故低層路徑必須用 `context.contentStream()` + `context.register()` 建立 indirect stream。

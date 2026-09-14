@@ -90,6 +90,11 @@ const api = {
       return ipcRenderer.invoke('file:save-as', defaultName, bytes)
     }
   },
+  fonts: {
+    cjk(): Promise<Uint8Array> {
+      return ipcRenderer.invoke('fonts:cjk')
+    }
+  },
   // Dev-only helpers (used by the PDFUSION_DEV_AUTOPEN verification flow).
   onAutoOpen(cb: (info: OpenedPdf) => void): void {
     ipcRenderer.on('dev:auto-open', (_e, info: OpenedPdf) => cb(info))

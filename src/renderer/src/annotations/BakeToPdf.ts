@@ -3,6 +3,7 @@ import type { PageManager } from '../pageops/PageManager'
 import type { Annotation, Rect } from './AnnotationModel'
 import { viewPointToPdf, viewRectToPdf } from '../textedit/Rotation'
 import { drawRotatedText } from '../textedit/RotatedText'
+import { pickTextFont } from '../textedit/CjkFont'
 
 /**
  * BakeToPdf — burns in-app annotations into the page content of the working
@@ -16,19 +17,54 @@ const INK = rgb(0.851, 0.188, 0.145)
 const TEXT = rgb(0.07, 0.07, 0.07)
 const TEXT_RGB: [number, number, number] = [0.07, 0.07, 0.07]
 
-/** Rough wrap for Helvetica-like metrics (avg char ≈ 0.52em). */
+/** CJK/fullwidth-ish code point? (used for wrap width estimation) */
+function isWide(ch: string): boolean {
+  const cp = ch.codePointAt(0) ?? 0
+  return (
+    (cp >= 0x1100 && cp <= 0x115f) ||
+    (cp >= 0x2e80 && cp <= 0x303e) ||
+    (cp >= 0x3041 && cp <= 0x33ff) ||
+    (cp >= 0x3400 && cp <= 0x4dbf) ||
+    (cp >= 0x4e00 && cp <= 0x9fff) ||
+    (cp >= 0xa000 && cp <= 0xa4cf) ||
+    (cp >= 0xac00 && cp <= 0xd7a3) ||
+    (cp >= 0xf900 && cp <= 0xfaff) ||
+    (cp >= 0x20000 && cp <= 0x3fffd)
+  )
+}
+
+function textWidthPx(text: string, fontSize: number): number {
+  let w = 0
+  for (const ch of text) w += (isWide(ch) ? 1.0 : 0.52) * fontSize
+  return w
+}
+
+/** Rough wrap: narrow chars ≈ 0.52em, CJK/fullwidth ≈ 1.0em. */
 function wrapText(text: string, width: number, fontSize: number): string[] {
   const lines: string[] = []
   for (const raw of text.split('\n')) {
     let current = ''
     for (const word of raw.split(' ')) {
       const candidate = current ? `${current} ${word}` : word
-      if (candidate.length * fontSize * 0.52 > width - 4 && current) {
+      if (textWidthPx(candidate, fontSize) > width - 4 && current) {
         lines.push(current)
         current = word
       } else {
         current = candidate
       }
+    }
+    // A single word longer than the line: hard-break by characters.
+    if (current && textWidthPx(current, fontSize) > width - 4) {
+      let piece = ''
+      for (const ch of current) {
+        if (piece && textWidthPx(piece + ch, fontSize) > width - 4) {
+          lines.push(piece)
+          piece = ch
+        } else {
+          piece += ch
+        }
+      }
+      current = piece
     }
     lines.push(current)
   }
@@ -66,14 +102,13 @@ export async function bakeAnnotations(
 ): Promise<void> {
   if (annotations.length === 0) return
 
-  const font: PDFFont = await pm.withDoc((doc: PDFDocument) => doc.embedFont(StandardFonts.Helvetica))
-
   // Resolve rotations for the pages that actually carry annotations.
   const rotPages = [...new Set(annotations.map((a) => a.page))]
   const rots = new Map<number, number>()
   for (const p of rotPages) rots.set(p, (await pageRotations(p)) ?? 0)
 
-  pm.withDoc((doc: PDFDocument) => {
+  await pm.withDoc(async (doc: PDFDocument) => {
+    let hel: PDFFont | null = null
     for (const ann of annotations) {
       const page = doc.getPage(ann.page)
       // pdf-lib sizes are the UNROTATED MediaBox.
@@ -125,9 +160,13 @@ export async function bakeAnnotations(
         }
 
         case 'freetext': {
+          // Use the document font chain when it can encode the text, otherwise
+          // fall back to the bundled Noto Sans TC (CJK input).
+          hel ??= await doc.embedFont(StandardFonts.Helvetica)
+          const tfont = await pickTextFont(doc, hel, ann.text)
           if (rot === 0) {
             const pr: Rect = viewRectToPdf(rot, W, H, ann.rect)
-            drawBakedText(page, pr, ann.text, ann.fontSize, font)
+            drawBakedText(page, pr, ann.text, ann.fontSize, tfont)
           } else {
             // Rotated page: draw via raw content stream so the text reads in
             // the view orientation (pdf-lib drawText cannot rotate).
@@ -135,7 +174,7 @@ export async function bakeAnnotations(
             drawRotatedText(
               doc,
               page,
-              font,
+              tfont,
               rot,
               W,
               H,

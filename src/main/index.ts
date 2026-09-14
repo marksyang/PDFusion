@@ -250,6 +250,36 @@ app.whenReady().then(() => {
             console.log('[pdfusion] dev fix:', r)
           }, 2500)
         }
+        if (process.env['PDFUSION_DEV_CJK']) {
+          // E2E: CJK freetext annotation + bake round-trip (any doc).
+          setTimeout(async () => {
+            const r = await mainWindow?.webContents.executeJavaScript(`(async () => {
+              try {
+                const dbg = window.__debug;
+                if (!dbg) return JSON.stringify({ err: 'no __debug' });
+                const docId = dbg.store.getState().docId;
+                if (docId === null) return JSON.stringify({ err: 'no doc' });
+                const ft = { id: 'cjk-ann', page: 0, type: 'freetext', rect: { x: 100, y: 300, w: 220, h: 40 }, text: '中文測試OK', fontSize: 16 };
+                dbg.annStore.getState().add(ft);
+                const bytes = await dbg.bakeToBytes(docId, [ft]);
+                return JSON.stringify({ ftRect: ft.rect, bytes, byteCount: bytes.length });
+              } catch (e) { return JSON.stringify({ err: String(e) }); }
+            })()`)
+            console.log('[pdfusion] dev cjk (head):', r.slice(0, 200))
+            try {
+              const parsed = JSON.parse(r)
+              if (parsed.bytes) {
+                const { writeFileSync, mkdirSync } = await import('fs')
+                const dir = '/tmp/pdfusion-fix'
+                mkdirSync(dir, { recursive: true })
+                writeFileSync(join(dir, 'cjk.pdf'), Buffer.from(parsed.bytes))
+                console.log('[pdfusion] dev cjk saved: /tmp/pdfusion-fix/cjk.pdf')
+              }
+            } catch (err) {
+              console.error('[pdfusion] dev cjk write failed:', err)
+            }
+          }, 3000)
+        }
         if (process.env['PDFUSION_DEV_ROTB']) {
           // E2E: highlight 'LINE TWO' (view coords), bake with rotation, save bytes.
           setTimeout(async () => {
@@ -266,9 +296,10 @@ app.whenReady().then(() => {
                 const view = await window.pdfusion.core.pageSize(docId, 0);
                 const hl = { id: 'rot-ann', page: 0, type: 'highlight', rect: { x: target.x, y: target.y, w: target.width, h: target.height } };
                 const ft = { id: 'rot-ft', page: 0, type: 'freetext', rect: { x: 100, y: 450, w: 320, h: 60 }, text: 'ROTATED-TEXT-OK', fontSize: 20 };
+                const cjk = { id: 'rot-cjk', page: 0, type: 'freetext', rect: { x: 100, y: 540, w: 260, h: 50 }, text: '旋轉頁中文', fontSize: 18 };
                 dbg.annStore.getState().add(hl);
-                const bytes = await dbg.bakeToBytes(docId, [hl, ft]);
-                return JSON.stringify({ target, view, ftRect: ft.rect, bytes, byteCount: bytes.length });
+                const bytes = await dbg.bakeToBytes(docId, [hl, ft, cjk]);
+                return JSON.stringify({ target, view, ftRect: ft.rect, cjkRect: cjk.rect, bytes, byteCount: bytes.length });
               } catch (e) { return JSON.stringify({ err: String(e) }); }
             })()`)
             console.log('[pdfusion] dev rotb (head):', r.slice(0, 400))

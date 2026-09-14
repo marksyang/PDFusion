@@ -31,6 +31,12 @@ extraResources:
     to: pdfium-windows
     filter:
       - '**/*'
+  # Bundled CJK font (Noto Sans TC, SIL OFL) used as a fallback when the
+  # document's fonts cannot encode the entered text (e.g. CJK input).
+  - from: resources/fonts
+    to: fonts
+    filter:
+      - '**/*'
 
 mac:
   category: public.app-category.productivity

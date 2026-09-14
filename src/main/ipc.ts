@@ -22,6 +22,12 @@ export function pdfiumDir(): string {
   return join(root, sub)
 }
 
+/** Bundled CJK fallback font (Noto Sans TC) bytes. */
+export function cjkFontPath(): string {
+  const root = app.isPackaged ? process.resourcesPath : join(projectRoot(), 'resources')
+  return join(root, 'fonts', 'NotoSansTC-Regular.otf')
+}
+
 export interface PdfCoreModule {
   PdfCore: new () => PdfCoreApi
 }
@@ -187,6 +193,8 @@ export function registerCoreIpc(): void {
   })
 
   // Save bytes to a chosen path.
+  ipcMain.handle('fonts:cjk', () => readFileSync(cjkFontPath()))
+
   ipcMain.handle(
     'file:save-as',
     async (_e, defaultName: string, bytes: Uint8Array): Promise<boolean> => {

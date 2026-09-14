@@ -3,6 +3,7 @@ import type { PageManager } from '../pageops/PageManager'
 import type { TextItem } from '../global'
 import { viewRectToPdf } from './Rotation'
 import { drawRotatedText } from './RotatedText'
+import { pickTextFont } from './CjkFont'
 
 /**
  * CommitText — replaces a text segment in the working document:
@@ -53,6 +54,10 @@ export async function commitTextEdit(
     return doc.embedFont(StandardFonts.Helvetica)
   })
 
+  // When the primary font cannot encode the new text (e.g. CJK input into a
+  // Western document), fall back to the bundled Noto Sans TC.
+  const drawFont = await pm.withDoc((doc: PDFDocument) => pickTextFont(doc, font, newText))
+
   pm.withDoc((doc) => {
     const pdfPage = doc.getPage(page)
     // pdf-lib sizes are the UNROTATED MediaBox.
@@ -87,17 +92,16 @@ export async function commitTextEdit(
             x: pr.x + 2,
             y: H - top - size, // baseline
             size,
-            font,
+            font: drawFont,
             color: rgb(0, 0, 0)
           })
         })
       } else {
         // Rotated page: raw content stream so text reads in view orientation.
-        drawRotatedText(doc, pdfPage, font, rot, W, H, item.x + 1, item.y + 1, lines, size, [0, 0, 0])
+        drawRotatedText(doc, pdfPage, drawFont, rot, W, H, item.x + 1, item.y + 1, lines, size, [0, 0, 0])
       }
     } catch (err) {
-      throw new Error(
-        `無法以該字型繪製新文字（可能含有不支援的字元，例如原文為西文文件卻輸入中日韓文字）：${String(err)}`
+      throw new Error(`繪製新文字失敗：${String(err)}`
       )
     }
   })

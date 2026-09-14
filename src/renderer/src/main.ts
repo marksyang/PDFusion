@@ -305,7 +305,8 @@ annotLayer.onEditClick = async (page, x, y) => {
     if (ok) hintEl.textContent = '文字已更新'
   }
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') void commit()
+    // isComposing: CJK IME candidate confirmation must not commit the edit.
+    if (e.key === 'Enter' && !e.isComposing) void commit()
     else if (e.key === 'Escape') {
       done = true
       input.remove()
@@ -379,7 +380,7 @@ window.pdfusion.onMenuAction((action) => {
 ;(document.getElementById('btn-next') as HTMLButtonElement).addEventListener('click', () => gotoPage(currentPage() + 1))
 
 searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
+  if (e.key === 'Enter' && !e.isComposing) {
     e.preventDefault()
     if (!searchInput.value.trim()) return
     if (e.shiftKey) gotoHit(hitIndex - 1)

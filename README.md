@@ -71,3 +71,9 @@ cargo test           # core/（目前為佔位；主測試在 test:core）
 - 本專案：MIT
 - PDFium：Apache-2.0（`resources/` 內二進位，相容於 MIT 分發）
 - pdf-lib / fontkit / zustand：MIT
+
+## 中日韓文字輸入
+
+free text 與改字支援 CJK：當原文字型無法編碼輸入文字時，自動以內附的
+[Noto Sans TC](https://fonts.google.com/noto/specimen/Noto+Sans+TC)（SIL OFL，
+`resources/fonts/`）嵌入並 subset。
