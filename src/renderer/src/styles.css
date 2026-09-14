@@ -56,6 +56,58 @@ body {
   color: #ffffff;
 }
 
+/* 工具鈕：圖示在上、文字在下 */
+#toolbar button[data-tool] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 8px 4px;
+  min-width: 46px;
+}
+
+#toolbar button[data-tool] svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+#toolbar button[data-tool] .lbl {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* 自訂 hover tooltip（取代原生 title，顯示更快、樣式統一） */
+#toolbar button[data-tip] {
+  position: relative;
+}
+
+#toolbar button[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e1f24;
+  color: #e8e9ed;
+  border: 1px solid #5a5d68;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  transition-delay: 0s;
+  z-index: 200;
+}
+
+#toolbar button[data-tip]:hover::after {
+  opacity: 1;
+  transition-delay: 0.35s;
+}
+
 #doc-title {
   font-size: 13px;
   max-width: 220px;

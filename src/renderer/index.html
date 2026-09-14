@@ -8,41 +8,89 @@
   <body>
     <div id="app">
       <header id="toolbar">
-        <button id="btn-open" title="開啟 PDF (Cmd/Ctrl-O)">開啟…</button>
+        <button id="btn-open" data-tip="開啟 PDF (Cmd/Ctrl-O)">開啟…</button>
         <span id="doc-title" class="muted"></span>
         <span class="spacer"></span>
         <div class="op-group">
-          <button data-tool="select" title="選取/刪除註解 (Delete 鍵)">選取</button>
-          <button data-tool="highlight" title="螢光筆">螢光</button>
-          <button data-tool="freetext" title="文字框">文字</button>
-          <button data-tool="edit" title="編輯原文字（點選要改的文字）">改字</button>
-          <button data-tool="rect" title="矩形">框線</button>
-          <button data-tool="ellipse" title="圓形">圓形</button>
-          <button data-tool="ink" title="自由筆畫">手寫</button>
-          <button data-tool="eraser" title="橡皮擦：點選或拖曳消除註解">橡皮擦</button>
+          <button data-tool="select" data-tip="選取/刪除註解（Delete 鍵）">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+              <path d="M4.5 2.5 L4.5 15 L8 11.8 L10.2 16 L12.4 15 L10.2 10.8 L14.5 10.3 Z" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="lbl">選取</span>
+          </button>
+          <button data-tool="highlight" data-tip="螢光筆：拖曳Highlight文字">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+              <path d="M3 15 h6"/>
+              <path d="M6.8 12.4 L13.5 5.7 L15.6 7.8 L8.9 14.5" fill="currentColor" stroke="none"/>
+              <path d="M13.5 5.7 L14.8 3.2 L16.8 5.2 L15.6 7.8 Z"/>
+            </svg>
+            <span class="lbl">螢光</span>
+          </button>
+          <button data-tool="freetext" data-tip="文字框：點選或拖出方框輸入文字">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M3.5 4.5 H14.5"/>
+              <path d="M9 4.5 V14.5"/>
+              <path d="M6 14.5 H12" stroke-width="1.2"/>
+            </svg>
+            <span class="lbl">文字</span>
+          </button>
+          <button data-tool="edit" data-tip="改字：點選要編輯的原文字">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+              <path d="M3 15 h4"/>
+              <path d="M11.6 3.6 l2.8 2.8 L6.4 14.4 L3.4 15 L4 12 Z"/>
+              <path d="M10.2 5 l2.8 2.8" stroke-width="1.1"/>
+            </svg>
+            <span class="lbl">改字</span>
+          </button>
+          <button data-tool="rect" data-tip="矩形框線">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="5" width="12" height="8.5" rx="1"/>
+            </svg>
+            <span class="lbl">框線</span>
+          </button>
+          <button data-tool="ellipse" data-tip="橢圓">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <ellipse cx="9" cy="9.2" rx="6.5" ry="4.8"/>
+            </svg>
+            <span class="lbl">圓形</span>
+          </button>
+          <button data-tool="ink" data-tip="自由筆畫（手寫）">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M2.8 13.5 C4.5 9.5, 6.5 15, 8.5 10.5 S12.5 6.5, 15.2 8" stroke-linecap="round"/>
+            </svg>
+            <span class="lbl">手寫</span>
+          </button>
+          <button data-tool="eraser" data-tip="橡皮擦：點選或拖曳消除註解">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+              <path d="M8.6 3.8 L14 9.2 L9.5 14 H6 L3.5 11.5 Z"/>
+              <path d="M7 6 L12 11" stroke-width="1.1"/>
+              <path d="M4 15.5 h10.5" stroke-width="1.2"/>
+            </svg>
+            <span class="lbl">橡皮擦</span>
+          </button>
           <span class="sep"></span>
-          <button id="btn-bake" title="把註解烘焙進 PDF（原生註解）">烘焙註解</button>
+          <button id="btn-bake" data-tip="把註解烘焙進 PDF（變成原生內容）">烘焙註解</button>
         </div>
         <div class="op-group">
-          <button id="btn-save" title="儲存目前工作檔 (Cmd+S)">儲存</button>
+          <button id="btn-save" data-tip="儲存目前工作檔 (Cmd+S)">儲存</button>
           <span class="sep"></span>
-          <button id="btn-del-page" title="刪除目前頁">刪頁</button>
-          <button id="btn-ins-blank" title="在目前頁前插入空白頁">＋空白</button>
-          <button id="btn-ins-img" title="插入圖片為新頁">＋圖片</button>
-          <button id="btn-ins-pdf" title="從其他 PDF 插入頁">＋PDF</button>
+          <button id="btn-del-page" data-tip="刪除目前頁">刪頁</button>
+          <button id="btn-ins-blank" data-tip="在目前頁前插入空白頁">＋空白</button>
+          <button id="btn-ins-img" data-tip="插入圖片為新頁">＋圖片</button>
+          <button id="btn-ins-pdf" data-tip="從其他 PDF 插入頁">＋PDF</button>
           <span class="sep"></span>
-          <button id="btn-split-first" title="前半另存">拆前</button>
-          <button id="btn-split-last" title="後半另存">拆後</button>
+          <button id="btn-split-first" data-tip="前半另存">拆前</button>
+          <button id="btn-split-last" data-tip="後半另存">拆後</button>
         </div>
         <div class="zoom-group">
-          <button id="btn-zoom-out" title="縮小">−</button>
+          <button id="btn-zoom-out" data-tip="縮小">−</button>
           <span id="zoom-label">100%</span>
-          <button id="btn-zoom-in" title="放大">＋</button>
+          <button id="btn-zoom-in" data-tip="放大">＋</button>
         </div>
         <span class="page-group">
-          <button id="btn-prev" title="上一頁 (PageUp)">‹</button>
+          <button id="btn-prev" data-tip="上一頁 (PageUp)">‹</button>
           <span id="page-label">–/–</span>
-          <button id="btn-next" title="下一頁 (PageDown)">›</button>
+          <button id="btn-next" data-tip="下一頁 (PageDown)">›</button>
         </span>
         <input id="search-input" type="search" placeholder="搜尋…" />
       </header>
