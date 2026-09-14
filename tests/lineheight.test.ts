@@ -47,6 +47,7 @@ describe('line height respects font metrics (no overlap at large sizes)', () => 
     const noto = await doc.embedFont(readFileSync(FONT))
     const hel = await doc.embedFont(StandardFonts.Helvetica)
     expect(textLineHeight(24, noto)).toBeGreaterThan(24 * 1.25)
+    expect(textLineHeight(24, noto)).toBeCloseTo(24 * 1.4, 5) // capped for looks
     expect(textLineHeight(24, hel)).toBeCloseTo(24 * 1.25, 5)
   }, 30000)
 

@@ -40,16 +40,17 @@ interface PDFPageLow {
 /**
  * Line height for multi-line text. Must respect the font's actual vertical
  * metrics: CJK fonts (e.g. Noto Sans TC) have ascender+descender ≈ 1.44em,
- * so a fixed 1.25×fontSize makes lines overlap at larger sizes.
+ * so a fixed 1.25×fontSize makes lines overlap at larger sizes — but the
+ * metric-based value (×1.06) is visually too loose, so cap at 1.4em.
  */
 export function textLineHeight(fontSize: number, font: PDFFont): number {
-  let h = fontSize * 1.25
+  let metric = fontSize * 1.25
   try {
-    h = Math.max(h, font.heightAtSize(fontSize) * 1.06)
+    metric = Math.max(metric, font.heightAtSize(fontSize) * 1.06)
   } catch {
     // heightAtSize unavailable — keep the conservative default.
   }
-  return h
+  return Math.min(metric, fontSize * 1.4)
 }
 
 /**
