@@ -205,6 +205,10 @@ export class AnnotationLayer {
     input.style.fontSize = `${fontSize * s}px`
 
     // Size picker beside the input: adjustable WHILE typing.
+    // NOTE: mousedown must NOT be preventDefault'd (that blocks the dropdown
+    // from opening in Chromium). Instead, ignore the input blur that happens
+    // while interacting with the picker.
+    let picking = false
     const sizeSel = document.createElement('select')
     sizeSel.className = 'freetext-fs'
     sizeSel.title = '字型大小'
@@ -218,11 +222,14 @@ export class AnnotationLayer {
     sizeSel.style.left = `${(rect.x + inputW + 6) * s}px`
     sizeSel.style.top = `${rect.y * s}px`
     sizeSel.style.fontSize = `${Math.max(11, fontSize) * s}px`
-    // Don't let the input blur (and commit) while picking a size.
-    sizeSel.addEventListener('mousedown', (e) => e.preventDefault())
+    sizeSel.addEventListener('mousedown', () => {
+      picking = true
+    })
     sizeSel.addEventListener('change', () => {
+      picking = false
       fontSize = Number(sizeSel.value)
       input.style.fontSize = `${fontSize * s}px`
+      input.focus()
     })
     wrap.appendChild(input)
     wrap.appendChild(sizeSel)
@@ -256,7 +263,20 @@ export class AnnotationLayer {
         sizeSel.remove()
       }
     })
-    input.addEventListener('blur', commit)
+    input.addEventListener('blur', () => {
+      if (picking) {
+        // Focus went to the size picker (or was cancelled). Commit only if
+        // focus ends up on the page, not back in the input.
+        window.setTimeout(() => {
+          picking = false
+          if (!done && document.activeElement !== input && document.activeElement !== sizeSel) {
+            commit()
+          }
+        }, 250)
+        return
+      }
+      commit()
+    })
   }
 
   private toPdf(e: PointerEvent, canvas: HTMLCanvasElement): { x: number; y: number } {
