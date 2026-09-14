@@ -47,7 +47,17 @@ jobs:
           npm run build
 
       - name: Package (electron-builder)
-        run: npx electron-builder ${{ matrix.builder-args }} --publish never
+        run: |
+          # GitHub's release CDN occasionally returns 504 while electron-builder
+          # downloads the Electron zip; retry a few times before failing.
+          for attempt in 1 2 3; do
+            if npx electron-builder ${{ matrix.builder-args }} --publish never; then
+              exit 0
+            fi
+            echo "electron-builder attempt $attempt failed — retrying in 20s"
+            sleep 20
+          done
+          exit 1
 
       - name: Attach to GitHub Release
         if: ${{ github.event_name == 'push' || inputs.tag != '' }}
