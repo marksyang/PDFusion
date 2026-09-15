@@ -8,12 +8,16 @@ import { PDFDocument, PDFFont } from 'pdf-lib'
  * stay small.
  */
 
-let cachedBytes: ArrayBuffer | null = null
+let cachedBytes: Uint8Array | null = null
 
-async function cjkFontBytes(): Promise<ArrayBuffer> {
+async function cjkFontBytes(): Promise<Uint8Array> {
   if (cachedBytes) return cachedBytes
+  // fontkit (1.8.x, required by pdf-lib's subset embedder) probes typed-array
+  // bytes; a bare ArrayBuffer is not recognized, so keep it as Uint8Array.
   const raw = await window.pdfusion.fonts.cjk()
-  cachedBytes = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer
+  const copy = new Uint8Array(raw.byteLength)
+  copy.set(raw)
+  cachedBytes = copy
   return cachedBytes
 }
 
@@ -34,5 +38,8 @@ export function textNeedsFallback(font: PDFFont, text: string): boolean {
  */
 export async function pickTextFont(doc: PDFDocument, primary: PDFFont, text: string): Promise<PDFFont> {
   if (!textNeedsFallback(primary, text)) return primary
-  return doc.embedFont(await cjkFontBytes())
+  // subset: the full Noto Sans TC is ~5.4MB; a subset of the baked glyphs is
+  // tens of KB. (Requires fontkit 1.8.x — pdf-lib's subset embedder is
+  // incompatible with fontkit ≥1.9.)
+  return doc.embedFont(await cjkFontBytes(), { subset: true })
 }

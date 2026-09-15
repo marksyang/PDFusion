@@ -30,12 +30,14 @@ export async function commitTextEdit(
 
   const rot = (await window.pdfusion.core.pageRotation(docId, page)) ?? 0
 
-  // Extract the original font bytes (best effort).
-  let fontBytes: ArrayBuffer | null = null
+  // Extract the original font bytes (best effort). Uint8Array (not
+  // ArrayBuffer): fontkit 1.8.x probes typed-array bytes only.
+  let fontBytes: Uint8Array | null = null
   if (item.fontName) {
     try {
       const raw = await window.pdfusion.core.getFont(docId, item.fontName)
-      fontBytes = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer
+      fontBytes = new Uint8Array(raw.byteLength)
+      fontBytes.set(raw)
     } catch {
       fontBytes = null
     }

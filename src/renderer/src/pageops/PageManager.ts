@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
-import * as fontkit from 'fontkit'
+import { fontkit } from '../textedit/Fontkit'
 
 /** pdf-lib needs a fontkit instance to embed custom (TTF/OTF) fonts. */
 function withFontkit(doc: PDFDocument): PDFDocument {

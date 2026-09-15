@@ -327,11 +327,11 @@ annotLayer.onEditClick = async (page, x, y) => {
 
 // Dev/debug handle (used by E2E dev triggers and the console).
 ;(window as any).__pdfusionDev = {
-  addFreetext: (text: string, y = 200) =>
+  addFreetext: (text: string, y = 200, page = 0) =>
     annStore.getState().add({
       id: `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       type: 'freetext',
-      page: 0,
+      page,
       rect: { x: 150, y, w: 240, h: 30 },
       text,
       fontSize: 20
@@ -339,7 +339,11 @@ annotLayer.onEditClick = async (page, x, y) => {
   save: () => void saveWorkingDoc(),
   anns: () => annStore.getState().annotations.map((a) => ({ ...a })),
   hint: () => (document.getElementById('hint') as HTMLElement)?.textContent ?? '',
-  zoom: () => useStore.getState().zoom
+  zoom: () => useStore.getState().zoom,
+  goto: (n: number) => {
+    void gotoPage(n)
+    return 'goto ' + n
+  }
 }
 
 // --- wiring ---
