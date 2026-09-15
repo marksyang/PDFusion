@@ -1,9 +1,26 @@
 import { app, BrowserWindow } from 'electron'
 import { buildMenu } from './menu'
 import { join } from 'path'
+import { writeFileSync as fsWriteFile } from 'fs'
 import { initCore, registerCoreIpc, registerDevIpc, loadPdfFile } from './ipc'
 
 let mainWindow: BrowserWindow | null = null
+
+// Single-instance guard: a stale/orphaned window (e.g. from an earlier dev
+// run) must not coexist with a fresh one — saves from the wrong window go to
+// the wrong place. Set PDFUSION_DEV_MULTI=1 to bypass (headless E2E).
+const gotInstanceLock = process.env['PDFUSION_DEV_MULTI'] ? true : app.requestSingleInstanceLock()
+if (!gotInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -50,6 +67,50 @@ app.whenReady().then(() => {
       if (info.ok) {
         const out = join('/tmp', `pdfusion-capture-${Date.now()}.png`)
         setTimeout(() => mainWindow?.webContents.send('dev:auto-open', info), 300)
+        if (process.env['PDFUSION_DEV_SCENARIO'] === 'double-save') {
+          setTimeout(async () => {
+            const step = (js: string) => mainWindow?.webContents.executeJavaScript(js)
+            await step(`__pdfusionDev.addFreetext('123', 200)`)
+            await new Promise((r) => setTimeout(r, 500))
+            await step(`__pdfusionDev.save()`)
+            await new Promise((r) => setTimeout(r, 3000))
+            console.log(
+              '[dev] after save#1:',
+              await step(`JSON.stringify({ hint: __pdfusionDev.hint(), anns: __pdfusionDev.anns() })`)
+            )
+            await step(`__pdfusionDev.addFreetext('456', 300)`)
+            await new Promise((r) => setTimeout(r, 500))
+            await step(`__pdfusionDev.save()`)
+            await new Promise((r) => setTimeout(r, 3000))
+            console.log(
+              '[dev] after save#2:',
+              await step(`JSON.stringify({ hint: __pdfusionDev.hint(), anns: __pdfusionDev.anns() })`)
+            )
+            const img = await mainWindow?.webContents.capturePage()
+            if (img) fsWriteFile('/tmp/ds-after-save2.png', img.toPNG())
+            console.log('[dev] captured /tmp/ds-after-save2.png')
+            const geom = await step(`(() => {
+              const w = document.querySelector('.page-wrap')
+              const cs = w ? w.getBoundingClientRect() : null
+              return JSON.stringify({ wrap: cs && [cs.left, cs.top, cs.width, cs.height], scroll: [window.scrollX, window.scrollY] })
+            })()`)
+            console.log('[dev] page geometry:', geom)
+            // --- rapid double-save race test: 789 ---
+            await step(`__pdfusionDev.addFreetext('789', 400)`)
+            await new Promise((r) => setTimeout(r, 300))
+            await step(`__pdfusionDev.save()`)
+            await new Promise((r) => setTimeout(r, 100))
+            await step(`__pdfusionDev.save()`) // second save while first is still baking
+            await new Promise((r) => setTimeout(r, 6000))
+            console.log(
+              '[dev] after rapid double save:',
+              await step(`JSON.stringify({ hint: __pdfusionDev.hint(), anns: __pdfusionDev.anns() })`)
+            )
+            const img2 = await mainWindow?.webContents.capturePage()
+            if (img2) fsWriteFile('/tmp/ds-after-rapid.png', img2.toPNG())
+            console.log('[dev] captured /tmp/ds-after-rapid.png')
+          }, 3000)
+        }
         const devSearch = process.env['PDFUSION_DEV_SEARCH']
         if (process.env['PDFUSION_DEV_OP']) {
           const op = process.env['PDFUSION_DEV_OP']

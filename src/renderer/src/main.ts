@@ -325,8 +325,40 @@ annotLayer.onEditClick = async (page, x, y) => {
   input.addEventListener('blur', () => void commit())
 }
 
+// Dev/debug handle (used by E2E dev triggers and the console).
+;(window as any).__pdfusionDev = {
+  addFreetext: (text: string, y = 200) =>
+    annStore.getState().add({
+      id: `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type: 'freetext',
+      page: 0,
+      rect: { x: 150, y, w: 240, h: 30 },
+      text,
+      fontSize: 20
+    }),
+  save: () => void saveWorkingDoc(),
+  anns: () => annStore.getState().annotations.map((a) => ({ ...a })),
+  hint: () => (document.getElementById('hint') as HTMLElement)?.textContent ?? '',
+  zoom: () => useStore.getState().zoom
+}
+
 // --- wiring ---
+let saveInProgress = false
 async function saveWorkingDoc(defaultName?: string): Promise<void> {
+  // Re-entrancy guard: baking a large doc takes seconds; a second save
+  // mid-flight would interleave two bakes on the same working document.
+  if (saveInProgress) {
+    hintEl.textContent = '儲存處理中，請稍候…'
+    return
+  }
+  saveInProgress = true
+  try {
+    await doSave(defaultName)
+  } finally {
+    saveInProgress = false
+  }
+}
+async function doSave(defaultName?: string): Promise<void> {
   const s = docState()
   if (s.docId === null) return
   hintEl.textContent = '儲存中…'
