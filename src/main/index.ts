@@ -67,7 +67,29 @@ app.whenReady().then(() => {
       if (info.ok) {
         const out = join('/tmp', `pdfusion-capture-${Date.now()}.png`)
         setTimeout(() => mainWindow?.webContents.send('dev:auto-open', info), 300)
-        if (process.env['PDFUSION_DEV_SCENARIO'] === 'double-save2') {
+        if (process.env['PDFUSION_DEV_SCENARIO'] === 'flow-b') {
+          // User's failing flow: 123 → save → (no reopen) 456+90 → save.
+          setTimeout(async () => {
+            const step = (js: string) => mainWindow?.webContents.executeJavaScript(js)
+            await step(`__pdfusionDev.addFreetext('123', 300, 0)`)
+            await new Promise((r) => setTimeout(r, 500))
+            await step(`__pdfusionDev.save()`)
+            await new Promise((r) => setTimeout(r, 4000))
+            console.log(
+              '[dev] flowB after save#1:',
+              await step(`JSON.stringify({ hint: __pdfusionDev.hint(), anns: __pdfusionDev.anns() })`)
+            )
+            await step(`__pdfusionDev.addFreetext('456', 340, 0)`)
+            await step(`__pdfusionDev.addFreetext('90', 380, 0)`)
+            await new Promise((r) => setTimeout(r, 500))
+            await step(`__pdfusionDev.save()`)
+            await new Promise((r) => setTimeout(r, 4000))
+            console.log(
+              '[dev] flowB after save#2:',
+              await step(`JSON.stringify({ hint: __pdfusionDev.hint(), anns: __pdfusionDev.anns() })`)
+            )
+          }, 4000)
+        } else if (process.env['PDFUSION_DEV_SCENARIO'] === 'double-save2') {
           setTimeout(async () => {
             const step = (js: string) => mainWindow?.webContents.executeJavaScript(js)
             await step(`__pdfusionDev.goto(1)`)

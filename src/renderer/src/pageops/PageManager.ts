@@ -54,6 +54,26 @@ export class PageManager {
     return this.commit()
   }
 
+  /**
+   * Rebuild the in-memory pdf-lib document from bytes.
+   *
+   * Why: pdf-lib silently drops newly-appended content streams when the SAME
+   * document object is saved a second time (mutate → save → mutate → save
+   * loses the second batch). Baking twice in one session (e.g. save "123",
+   * then without reopening save "456+90") lost the second batch. Reloading
+   * from the last saved bytes before each save keeps every bake on a fresh
+   * document — identical to the user reopening the file.
+   */
+  async reload(bytes: Uint8Array): Promise<void> {
+    this.doc = withFontkit(
+      await PDFDocument.load(bytes as unknown as ArrayBuffer, {
+        ignoreEncryption: true,
+        updateMetadata: false
+      })
+    )
+    this.bytes = bytes
+  }
+
   /** Delete the page at index. */
   async deletePage(index: number): Promise<PageOpResult> {
     const doc = this.require()

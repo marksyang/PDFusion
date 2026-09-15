@@ -35,7 +35,7 @@ export class DocController {
     id: number,
     name: string,
     op: () => Promise<{ bytes: Uint8Array; pageCount: number }>
-  ): Promise<boolean> {
+  ): Promise<Uint8Array | null> {
     let snapshot: Uint8Array | null = null
     if (this.pm.hasDoc) {
       try {
@@ -49,7 +49,7 @@ export class DocController {
       const { bytes, pageCount } = await op()
       const newId = await window.pdfusion.doc.reload(id, bytes)
       this.hooks.onDocChanged(newId, name, pageCount)
-      return true
+      return bytes
     } catch (err) {
       console.error(`page op failed: ${label}`, err)
       if (snapshot) {
@@ -60,7 +60,7 @@ export class DocController {
         }
       }
       this.hooks.status(`失敗：${label} — ${String(err)}`)
-      return false
+      return null
     }
   }
 }

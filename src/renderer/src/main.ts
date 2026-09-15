@@ -366,11 +366,24 @@ async function doSave(defaultName?: string): Promise<void> {
   const s = docState()
   if (s.docId === null) return
   hintEl.textContent = '儲存中…'
+  // Fetch the current document bytes from the core (the source of truth) so
+  // every save can rebuild the pdf-lib working document from fresh bytes.
+  const currentBytes = await window.pdfusion.doc.getBytes(s.docId)
+  if (!currentBytes) {
+    hintEl.textContent = '失敗：讀取文件內容'
+    return
+  }
   // Auto-bake pending annotations so the saved file matches what is on screen.
   const pending = annStore.getState().annotations
+  const base = defaultName ?? (s.fileName.endsWith('.pdf') ? s.fileName : `${s.fileName}.pdf`)
   if (pending.length > 0) {
     const id = s.docId
     const baked = await controller.apply(`烘焙 ${pending.length} 筆註解`, id, s.fileName, async () => {
+      // CRITICAL: rebuild the pdf-lib document from current bytes before baking.
+      // pdf-lib drops newly-appended content streams when the same document
+      // object is saved a second time, so a session's Nth bake must start from
+      // a freshly loaded document (same as if the file had been reopened).
+      await controller.manager.reload(currentBytes)
       await bakeAnnotations(controller.manager, pending, pageRotationsFor(id))
       return controller.manager.save()
     })
@@ -379,13 +392,25 @@ async function doSave(defaultName?: string): Promise<void> {
       return
     }
     annStore.getState().clear()
+    // `baked` is already the fully serialized document (apply() reloaded the
+    // core from it) — write it directly. A second manager.save() here would be
+    // a redundant re-save of the same document (and a known pdf-lib trap).
+    try {
+      await window.pdfusion.fs.saveAs(base, baked)
+      hintEl.textContent = `已儲存 ${base}（含 ${pending.length} 筆註解）`
+    } catch (err) {
+      hintEl.textContent = `失敗：儲存 — ${String(err)}`
+    }
+    return
   }
+  // Plain save (no pending annotations). Still rebuild the working document
+  // first: if an earlier bake already saved this in-memory object once, a
+  // plain save on it would be pdf-lib's second save of the same object.
   try {
+    await controller.manager.reload(currentBytes)
     const res = await controller.manager.save()
-    const base = defaultName ?? (s.fileName.endsWith('.pdf') ? s.fileName : `${s.fileName}.pdf`)
     await window.pdfusion.fs.saveAs(base, res.bytes)
-    hintEl.textContent =
-      `已儲存 ${base}` + (pending.length > 0 ? `（含 ${pending.length} 筆註解）` : '')
+    hintEl.textContent = `已儲存 ${base}`
   } catch (err) {
     hintEl.textContent = `失敗：儲存 — ${String(err)}`
   }
